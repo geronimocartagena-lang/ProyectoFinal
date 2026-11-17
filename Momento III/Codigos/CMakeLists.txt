@@ -27,6 +27,8 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
         Personaje.h
         EscudoVibranium.cpp
         EscudoVibranium.h
+        Civil.cpp
+        Civil.h
     )
 # Define target properties for Android with Qt 6 as:
 #    set_property(TARGET Codigos APPEND PROPERTY QT_ANDROID_PACKAGE_SOURCE_DIR
