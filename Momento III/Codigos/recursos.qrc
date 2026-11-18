@@ -1,0 +1,11 @@
+<RCC>
+    <qresource prefix="/new/prefix1">
+        <file>Suelo.png</file>
+        <file>SpritesEscudoAmerica.jpg</file>
+        <file>spritesCampesinos.jpg</file>
+        <file>Sprite_Saltar.png</file>
+        <file>Sprite_Correr.png</file>
+        <file>MontañasN1.png</file>
+        <file>FondoN1.jpg</file>
+    </qresource>
+</RCC>

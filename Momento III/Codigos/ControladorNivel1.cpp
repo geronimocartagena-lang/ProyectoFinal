@@ -2,32 +2,31 @@
 
 ControladorNivel1::ControladorNivel1(QObject* parent)
     : QObject(parent),
-    tiempoRestanteSegundos(180), // 3:00 minutos exactos
+    tiempoRestanteSegundos(180),
     nivelActual(1),
     civilesEvacuados(0),
     juegoTerminado(false),
     misionCumplida(false) {
 
-    // 1. Instanciar al protagonista en memoria dinámica
-    heroe = new CapitanAmerica(100.0f, 385.0f);
+    // Posición inicial sobre el suelo (465 - 105 = 360)
+    heroe = new CapitanAmerica(100.0f, 360.0f);
 
-    // 2. Poblar los 5 grupos de civiles a rescatar en el pueblo (memoria dinámica)
-    listaCiviles.push_back(new Civil(450.0f, 395.0f));
-    listaCiviles.push_back(new Civil(850.0f, 395.0f));
-    listaCiviles.push_back(new Civil(1300.0f, 395.0f));
-    listaCiviles.push_back(new Civil(1750.0f, 395.0f));
-    listaCiviles.push_back(new Civil(2150.0f, 395.0f));
+    // 5 campesinos distribuidos en el pueblo (465 - 95 = 370)
+    listaCiviles.push_back(new Civil(500.0f, 370.0f));
+    listaCiviles.push_back(new Civil(950.0f, 370.0f));
+    listaCiviles.push_back(new Civil(1400.0f, 370.0f));
+    listaCiviles.push_back(new Civil(1850.0f, 370.0f));
+    listaCiviles.push_back(new Civil(2250.0f, 370.0f));
 
-    // 3. Configurar plataformas (escombros) y zonas de fango (Física de rozamiento)
-    mapaTerreno.push_back({QRectF(300.0f, 340.0f, 150.0f, 20.0f), false});  // Plataforma madera
-    mapaTerreno.push_back({QRectF(600.0f, 445.0f, 220.0f, 15.0f), true});   // Zona de fango 1
-    mapaTerreno.push_back({QRectF(1050.0f, 320.0f, 180.0f, 20.0f), false}); // Plataforma techo
-    mapaTerreno.push_back({QRectF(1450.0f, 445.0f, 260.0f, 15.0f), true});  // Zona de fango 2
+    // Plataformas flotantes (donde se dibujará Suelo.png) y zonas de fango
+    mapaTerreno.push_back({QRectF(320.0f, 330.0f, 200.0f, 32.0f), false});
+    mapaTerreno.push_back({QRectF(680.0f, 455.0f, 240.0f, 18.0f), true});
+    mapaTerreno.push_back({QRectF(1120.0f, 310.0f, 220.0f, 32.0f), false});
+    mapaTerreno.push_back({QRectF(1550.0f, 455.0f, 280.0f, 18.0f), true});
 
-    // 4. Zona segura al inicio/extremo del pueblo
-    zonaEvacuacion = QRectF(2400.0f, 330.0f, 140.0f, 120.0f);
+    // Zona segura más amplia para facilitar la entrega de campesinos
+    zonaEvacuacion = QRectF(2380.0f, 310.0f, 180.0f, 155.0f);
 
-    // 5. Configurar el reloj con sintaxis moderna de Qt
     timerReloj = new QTimer(this);
     connect(timerReloj, &QTimer::timeout, this, &ControladorNivel1::descontarSegundo);
 }
@@ -41,7 +40,7 @@ ControladorNivel1::~ControladorNivel1() {
 }
 
 void ControladorNivel1::iniciarReloj() {
-    timerReloj->start(1000); // Dispara cada 1000 ms (1 segundo)
+    timerReloj->start(1000);
 }
 
 void ControladorNivel1::descontarSegundo() {
@@ -50,7 +49,6 @@ void ControladorNivel1::descontarSegundo() {
     tiempoRestanteSegundos--;
     emit tiempoActualizado(tiempoRestanteSegundos);
 
-    // Activar personalidad "Veloz / Salterín" bajo presión en los últimos 30 segundos
     if (tiempoRestanteSegundos == 30) {
         heroe->activarModoVeloz();
     }
@@ -67,34 +65,35 @@ float ControladorNivel1::obtenerFriccionActualHeroe() const {
     QRectF boxHeroe = heroe->getHitBox();
     for (const auto& obs : mapaTerreno) {
         if (obs.esFango && boxHeroe.intersects(obs.area)) {
-            return 0.55f; // Reduce velocidad al 45% en el fango
+            return 0.55f;
         }
     }
-    return 0.0f; // Terreno seco normal
+    return 0.0f;
 }
 
 void ControladorNivel1::verificarColisionesAABB() {
     QRectF boxHeroe = heroe->getHitBox();
     QRectF boxEscudo = heroe->getEscudo()->getHitBox();
 
-    // A. Colisión del Héroe con Plataformas Sólidas (AABB)
+    // A. Colisión del héroe sobre plataformas sólidas
     for (const auto& obs : mapaTerreno) {
         if (!obs.esFango && boxHeroe.intersects(obs.area)) {
-            // Si cae desde arriba sobre la plataforma
-            if (boxHeroe.bottom() <= obs.area.top() + 15.0f) {
-                heroe->setVelocidad(0.0f, 0.0f);
+            if (heroe->getVelY() >= 0.0f && boxHeroe.bottom() <= obs.area.top() + 18.0f) {
+                heroe->setPosY(obs.area.top() - boxHeroe.height());
+                heroe->setVelY(0.0f);
+                heroe->setEnSuelo(true);
             }
         }
-        // B. Rebote vectorial del escudo contra escombros sólidos
+        // B. Rebote del escudo en plataformas
         if (!obs.esFango && heroe->getEscudo()->estaActivo() && boxEscudo.intersects(obs.area)) {
             heroe->getEscudo()->rebotarVectorial(0.0f, -1.0f);
         }
     }
 
-    // C. Interacción Héroe <-> Civiles (Rescate y Evacuación)
+    // C. Rescate y evacuación de civiles
     for (Civil* civil : listaCiviles) {
         if (!civil->isRescatado() && boxHeroe.intersects(civil->getHitBox())) {
-            heroe->rescatarCivil(civil); // Activa modo Fortachón
+            heroe->rescatarCivil(civil);
         }
 
         if (civil->isRescatado() && !civil->isEvacuado() && civil->getHitBox().intersects(zonaEvacuacion)) {
@@ -107,20 +106,16 @@ void ControladorNivel1::verificarColisionesAABB() {
 void ControladorNivel1::actualizarReglas(float dt) {
     if (juegoTerminado) return;
 
-    // 1. Actualizar físicas y estados
     heroe->actualizarEstado(dt);
     heroe->actualizarFisica(dt);
     heroe->getEscudo()->actualizarMovimiento(dt);
 
-    // 2. Actualizar movimiento de civiles rescatados
     for (Civil* civil : listaCiviles) {
         civil->seguirHeroe(heroe->getPosX(), dt);
     }
 
-    // 3. Evaluar colisiones AABB
     verificarColisionesAABB();
 
-    // 4. Verificar condición de victoria (5 grupos rescatados)
     if (civilesEvacuados >= static_cast<int>(listaCiviles.size())) {
         timerReloj->stop();
         juegoTerminado = true;
