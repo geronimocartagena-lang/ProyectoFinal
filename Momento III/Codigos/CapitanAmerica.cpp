@@ -18,7 +18,6 @@ CapitanAmerica::~CapitanAmerica() {
 void CapitanAmerica::rescatarCivil(Civil* civil) {
     if (civil != nullptr && !civil->isRescatado()) {
         civil->liberar();
-        // Al rescatar un grupo, activa la personalidad "Fortachón"
         activarModoFortachon();
     }
 }
@@ -26,20 +25,20 @@ void CapitanAmerica::rescatarCivil(Civil* civil) {
 void CapitanAmerica::activarModoFortachon() {
     estadoEspecial = "Fortachon";
     tiempoEstadoEspecial = 8.0f;
-    fuerzaEscudo = 40;             // +50% fuerza
-    multiplicadorVelocidad = 0.85f; // -15% velocidad por el esfuerzo
+    fuerzaEscudo = 40;
+    multiplicadorVelocidad = 0.85f;
 }
 
 void CapitanAmerica::activarModoVeloz() {
     estadoEspecial = "Veloz";
     tiempoEstadoEspecial = 10.0f;
     fuerzaEscudo = 25;
-    multiplicadorVelocidad = 1.25f; // +25% agilidad y salto
+    multiplicadorVelocidad = 1.25f;
 }
 
 void CapitanAmerica::lanzarEscudo(float anguloGrados) {
     if (tieneEscudo && !escudo->estaActivo() && !bloqueando) {
-        escudo->calcularTiroBalistico(posX + 20.0f, posY + 20.0f, anguloGrados, 450.0f);
+        escudo->calcularTiroBalistico(posX + 22.0f, posY + 25.0f, anguloGrados, 520.0f);
         tieneEscudo = false;
     }
 }
@@ -60,20 +59,20 @@ void CapitanAmerica::actualizarEstado(float dt) {
         }
     }
 
-    // Verificar si el escudo terminó su vuelo para recuperarlo
     if (!tieneEscudo && !escudo->estaActivo()) {
         tieneEscudo = true;
     }
 }
 
 void CapitanAmerica::moverHorizontal(int direccion, float friccionTerreno) {
-    // Modelo Físico 3: Rozamiento dinámico por terreno (fango / escombros)
-    float velocidadBase = 220.0f * multiplicadorVelocidad;
+    // Modelo Físico 3: Rozamiento dinámico en fango
+    float velocidadBase = 240.0f * multiplicadorVelocidad;
     velX = direccion * velocidadBase * (1.0f - friccionTerreno);
 }
 
 void CapitanAmerica::saltar() {
-    if (velY == 0.0f) {
-        velY = -360.0f * multiplicadorVelocidad;
+    if (enSuelo) {
+        velY = -490.0f * multiplicadorVelocidad; // Impulso vertical calibrado con g = 980
+        enSuelo = false;
     }
 }

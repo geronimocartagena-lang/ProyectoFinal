@@ -14,7 +14,7 @@ private:
     float tiempoEstadoEspecial;
     float multiplicadorVelocidad;
     int fuerzaEscudo;
-    EscudoVibranium* escudo; // Asociación 1 a 1 con memoria dinámica
+    EscudoVibranium* escudo; // Asociación 1 a 1
 
 public:
     CapitanAmerica(float x, float y);
@@ -27,13 +27,14 @@ public:
     void lanzarEscudo(float anguloGrados);
     void bloquear(bool estado);
 
-    // Actualización de estados y movimiento
+    // Actualización y control
     void actualizarEstado(float dt);
     void moverHorizontal(int direccion, float friccionTerreno);
     void saltar();
 
     // Getters
     bool isBloqueando() const { return bloqueando; }
+    QString getEstadoEspecial() const { return estadoEspecial; }
     EscudoVibranium* getEscudo() const { return escudo; }
     int getFuerzaEscudo() const { return fuerzaEscudo; }
 };

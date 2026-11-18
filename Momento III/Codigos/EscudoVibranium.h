@@ -16,12 +16,12 @@ private:
     bool activo;
 
 public:
-    EscudoVibranium(float r = 15.0f);
+    EscudoVibranium(float r = 12.0f);
 
     // Métodos del diagrama
     void calcularTiroBalistico(float origenX, float origenY, float anguloGrados, float velocidadInicial);
     void rebotarVectorial(float normalX, float normalY);
-    void actualizarMovimiento(float dt, float gravedad = 4.5f);
+    void actualizarMovimiento(float dt, float gravedad = 450.0f);
 
     // Utilidades
     bool estaActivo() const { return activo; }

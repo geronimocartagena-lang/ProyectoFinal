@@ -1,5 +1,9 @@
 #include "EscudoVibranium.h"
 
+#ifndef M_PI
+#define M_PI 3.14159265358979323846
+#endif
+
 EscudoVibranium::EscudoVibranium(float r)
     : posX(0), posY(0), velX(0), velY(0), radio(r), anguloTiro(0), rebotesRestantes(3), activo(false) {}
 
@@ -31,6 +35,12 @@ void EscudoVibranium::actualizarMovimiento(float dt, float gravedad) {
     velY += gravedad * dt;
     posX += velX * dt;
     posY += velY * dt;
+
+    // Rebote automático contra el suelo (Y = 450)
+    if (posY + radio >= 450.0f) {
+        posY = 450.0f - radio;
+        rebotarVectorial(0.0f, -1.0f);
+    }
 }
 
 QRectF EscudoVibranium::getHitBox() const {

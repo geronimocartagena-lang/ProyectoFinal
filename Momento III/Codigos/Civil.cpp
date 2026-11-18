@@ -5,11 +5,15 @@ Civil::Civil(float x, float y)
     : Personaje(x, y, 50, 35.0f, 55.0f), rescatado(false), enZonaEvacuacion(false) {}
 
 void Civil::seguirHeroe(float heroeX, float dt) {
-    if (!rescatado || enZonaEvacuacion) return;
+    if (!rescatado || enZonaEvacuacion) {
+        velX = 0.0f;
+        actualizarFisica(dt);
+        return;
+    }
 
     float distancia = heroeX - posX;
-    if (std::abs(distancia) > 50.0f) {
-        velX = (distancia > 0) ? 140.0f : -140.0f;
+    if (std::abs(distancia) > 55.0f) {
+        velX = (distancia > 0) ? 160.0f : -160.0f;
     } else {
         velX = 0.0f;
     }

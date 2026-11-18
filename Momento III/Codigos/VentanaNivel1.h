@@ -3,8 +3,8 @@
 
 #include <QGraphicsView>
 #include <QGraphicsScene>
-#include <QGraphicsPixmapItem>
 #include <QGraphicsRectItem>
+#include <QGraphicsEllipseItem>
 #include <QGraphicsTextItem>
 #include <QKeyEvent>
 #include <QTimer>
@@ -19,17 +19,15 @@ private:
     ControladorNivel1* controlador;
     QTimer* gameLoopTimer;
 
-    // Elementos gráficos en escena
-    QGraphicsPixmapItem* spriteHeroe;
-    QGraphicsPixmapItem* spriteEscudo;
-    std::vector<QGraphicsPixmapItem*> spritesCiviles;
+    QGraphicsRectItem* itemHeroe;
+    QGraphicsEllipseItem* itemEscudo;
+    std::vector<QGraphicsRectItem*> itemsCiviles;
     QGraphicsTextItem* hudTexto;
 
-    // Control de teclas presionadas simultáneamente
+    bool mirandoDerecha;
     bool teclaIzquierda;
     bool teclaDerecha;
 
-    void cargarRecursosGraficos();
     void construirEscenario();
 
 public:
