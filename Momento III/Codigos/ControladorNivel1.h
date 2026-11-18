@@ -34,12 +34,10 @@ public:
     explicit ControladorNivel1(QObject* parent = nullptr);
     ~ControladorNivel1() override;
 
-    // Métodos del diagrama
     void iniciarReloj();
     void verificarColisionesAABB();
     void actualizarReglas(float dt);
 
-    // Getters
     CapitanAmerica* getHeroe() const { return heroe; }
     const std::vector<Civil*>& getCiviles() const { return listaCiviles; }
     const std::vector<Obstaculo>& getMapaTerreno() const { return mapaTerreno; }

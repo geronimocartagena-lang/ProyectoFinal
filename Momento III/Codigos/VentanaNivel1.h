@@ -43,6 +43,7 @@ private:
     void construirEscenario();
     void cargarSprites();
     QPixmap limpiarFondoAjedrez(const QPixmap& original);
+    QPixmap recortarBordesTransparentes(const QPixmap& pix);
     void actualizarAnimaciones(int direccion);
     void refrescarTextoHUD();
 

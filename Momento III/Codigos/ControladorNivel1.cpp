@@ -8,24 +8,23 @@ ControladorNivel1::ControladorNivel1(QObject* parent)
     juegoTerminado(false),
     misionCumplida(false) {
 
-    // Posición inicial sobre el suelo (465 - 105 = 360)
     heroe = new CapitanAmerica(100.0f, 360.0f);
 
-    // 5 campesinos distribuidos en el pueblo (465 - 95 = 370)
-    listaCiviles.push_back(new Civil(500.0f, 370.0f));
-    listaCiviles.push_back(new Civil(950.0f, 370.0f));
-    listaCiviles.push_back(new Civil(1400.0f, 370.0f));
-    listaCiviles.push_back(new Civil(1850.0f, 370.0f));
+    listaCiviles.push_back(new Civil(650.0f, 370.0f));
+    listaCiviles.push_back(new Civil(1450.0f, 370.0f));
     listaCiviles.push_back(new Civil(2250.0f, 370.0f));
+    listaCiviles.push_back(new Civil(3050.0f, 370.0f));
+    listaCiviles.push_back(new Civil(3800.0f, 370.0f));
 
-    // Plataformas flotantes (donde se dibujará Suelo.png) y zonas de fango
-    mapaTerreno.push_back({QRectF(320.0f, 330.0f, 200.0f, 32.0f), false});
-    mapaTerreno.push_back({QRectF(680.0f, 455.0f, 240.0f, 18.0f), true});
-    mapaTerreno.push_back({QRectF(1120.0f, 310.0f, 220.0f, 32.0f), false});
-    mapaTerreno.push_back({QRectF(1550.0f, 455.0f, 280.0f, 18.0f), true});
+    mapaTerreno.push_back({QRectF(420.0f, 330.0f, 220.0f, 40.0f), false});
+    mapaTerreno.push_back({QRectF(880.0f, 455.0f, 280.0f, 18.0f), true});
+    mapaTerreno.push_back({QRectF(1320.0f, 310.0f, 240.0f, 40.0f), false});
+    mapaTerreno.push_back({QRectF(1800.0f, 455.0f, 320.0f, 18.0f), true});
+    mapaTerreno.push_back({QRectF(2450.0f, 320.0f, 240.0f, 40.0f), false});
+    mapaTerreno.push_back({QRectF(2850.0f, 455.0f, 300.0f, 18.0f), true});
+    mapaTerreno.push_back({QRectF(3350.0f, 300.0f, 260.0f, 40.0f), false});
 
-    // Zona segura más amplia para facilitar la entrega de campesinos
-    zonaEvacuacion = QRectF(2380.0f, 310.0f, 180.0f, 155.0f);
+    zonaEvacuacion = QRectF(4220.0f, 310.0f, 200.0f, 155.0f);
 
     timerReloj = new QTimer(this);
     connect(timerReloj, &QTimer::timeout, this, &ControladorNivel1::descontarSegundo);
@@ -75,7 +74,6 @@ void ControladorNivel1::verificarColisionesAABB() {
     QRectF boxHeroe = heroe->getHitBox();
     QRectF boxEscudo = heroe->getEscudo()->getHitBox();
 
-    // A. Colisión del héroe sobre plataformas sólidas
     for (const auto& obs : mapaTerreno) {
         if (!obs.esFango && boxHeroe.intersects(obs.area)) {
             if (heroe->getVelY() >= 0.0f && boxHeroe.bottom() <= obs.area.top() + 18.0f) {
@@ -84,13 +82,11 @@ void ControladorNivel1::verificarColisionesAABB() {
                 heroe->setEnSuelo(true);
             }
         }
-        // B. Rebote del escudo en plataformas
         if (!obs.esFango && heroe->getEscudo()->estaActivo() && boxEscudo.intersects(obs.area)) {
             heroe->getEscudo()->rebotarVectorial(0.0f, -1.0f);
         }
     }
 
-    // C. Rescate y evacuación de civiles
     for (Civil* civil : listaCiviles) {
         if (!civil->isRescatado() && boxHeroe.intersects(civil->getHitBox())) {
             heroe->rescatarCivil(civil);
