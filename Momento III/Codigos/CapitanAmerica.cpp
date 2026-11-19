@@ -1,7 +1,7 @@
 #include "CapitanAmerica.h"
 
 CapitanAmerica::CapitanAmerica(float x, float y)
-    : Personaje(x, y, 75.0f, 105.0f, 270.0f),
+    : Personaje(x, y, 70.0f, 95.0f, 270.0f),
     civilesRescatados(0),
     modoVeloz(false),
     bloqueando(false),

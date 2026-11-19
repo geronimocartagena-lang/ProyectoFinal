@@ -36,6 +36,7 @@ private:
     std::vector<QPixmap> framesCorrer;
     std::vector<QPixmap> framesSaltar;
     std::vector<QPixmap> framesGolpear;
+    std::vector<QPixmap> framesDefensa;
     std::vector<QPixmap> framesEscudo;
     std::vector<std::vector<QPixmap>> framesCampesinos;
     std::vector<QPixmap> framesEnemigoCaminar;
@@ -44,6 +45,7 @@ private:
 
     int frameHeroeActual;
     int frameGolpeActual;
+    int frameDefensaActual;
     int frameEscudoActual;
     int frameCivilActual;
     int frameEnemigoActual;
@@ -57,7 +59,7 @@ private:
     void cargarSprites();
     QPixmap limpiarFondoAjedrez(const QPixmap& original);
     QPixmap recortarBordesTransparentes(const QPixmap& pix);
-    void extraerSpritesPorBlob(const QPixmap& sheet, int yInicio, int yFin, std::vector<QPixmap>& destino);
+    void extraerSpritesPorBlob(const QPixmap& sheet, int yInicio, int yFin, int altoObjetivo, std::vector<QPixmap>& destino);
     void actualizarAnimaciones(int direccion);
     void refrescarTextoHUD();
 

@@ -9,5 +9,6 @@
         <file>FondoN1.jpg</file>
         <file>Sprite_Enemigo.png</file>
         <file>Lucha_cuerpoACuerpo.png</file>
+        <file>DefensaC.png</file>
     </qresource>
 </RCC>

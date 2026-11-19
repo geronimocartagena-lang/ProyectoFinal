@@ -16,11 +16,19 @@ void Civil::evacuar() {
 void Civil::seguirHeroe(float heroeX, float dt) {
     if (!rescatado || evacuado) return;
 
-    float distanciaDeseada = 65.0f + (indiceFila * 45.0f);
-    float objetivoX = heroeX - distanciaDeseada;
-    float diff = objetivoX - posX;
+    const float sueloY = 370.0f;
+    if (posY < sueloY) {
+        posY += 420.0f * dt;
+        if (posY > sueloY) posY = sueloY;
+    }
 
-    if (std::abs(diff) > 8.0f) {
-        posX += diff * 4.5f * dt;
+    // Si el héroe está cerca de la Zona Segura (X >= 5950), todos los campesinos corren directo adentro
+    float objetivoX = (heroeX >= 5950.0f)
+                          ? 6280.0f
+                          : (heroeX - (65.0f + indiceFila * 48.0f));
+
+    float diff = objetivoX - posX;
+    if (std::abs(diff) > 6.0f) {
+        posX += diff * 4.8f * dt;
     }
 }

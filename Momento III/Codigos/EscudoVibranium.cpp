@@ -28,7 +28,7 @@ void EscudoVibranium::actualizarMovimiento(float dt) {
         rebotarVectorial(0.0f, -1.0f);
     }
 
-    if (tiempoVuelo >= 1.35f || posX < 0.0f || posX > 4500.0f) {
+    if (tiempoVuelo >= 1.35f || posX < 0.0f || posX > 6500.0f) {
         activo = false;
     }
 }
