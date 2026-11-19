@@ -7,5 +7,7 @@
         <file>Sprite_Correr.png</file>
         <file>MontañasN1.png</file>
         <file>FondoN1.jpg</file>
+        <file>Sprite_Enemigo.png</file>
+        <file>Lucha_cuerpoACuerpo.png</file>
     </qresource>
 </RCC>
