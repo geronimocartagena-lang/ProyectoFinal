@@ -28,9 +28,8 @@ private:
     std::vector<QGraphicsPixmapItem*> poolBalasEnemigas;
 
     QGraphicsTextItem* hudTexto;
-    QGraphicsRectItem* barraVidaFondo;
-    QGraphicsRectItem* barraVidaRelleno;
-    QGraphicsTextItem* textoVida;
+    QGraphicsPixmapItem* itemBarraVida;
+    int ultimaVidaRenderizada;
 
     QPixmap pixQuieto;
     std::vector<QPixmap> framesCorrer;
@@ -60,9 +59,10 @@ private:
     QPixmap limpiarFondoAjedrez(const QPixmap& original);
     QPixmap limpiarVerdeChroma(const QPixmap& original);
     QPixmap recortarBordesTransparentes(const QPixmap& pix);
-    void extraerSpritesPorBlob(const QPixmap& sheet, int yInicio, int yFin, int altoObjetivo, std::vector<QPixmap>& destino);
+    void extraerSpritesPorBlob(const QPixmap& sheet, int yInicio, int yFin, int altoReferenciaMax, int altoObjetivo, std::vector<QPixmap>& destino);
     void actualizarAnimaciones(int direccion);
     void refrescarTextoHUD();
+    void actualizarBarraVidaPixelArt(int vidaActual, int vidaMax);
 
 public:
     explicit VentanaNivel1(QWidget* parent = nullptr);

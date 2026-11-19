@@ -13,6 +13,7 @@
 
 VentanaNivel1::VentanaNivel1(QWidget* parent)
     : QGraphicsView(parent),
+    ultimaVidaRenderizada(-1),
     frameHeroeActual(0),
     frameGolpeActual(0),
     frameDefensaActual(0),
@@ -72,7 +73,6 @@ QPixmap VentanaNivel1::limpiarFondoAjedrez(const QPixmap& original) {
             int maxDiff = std::max({std::abs(c.red() - c.green()),
                                     std::abs(c.green() - c.blue()),
                                     std::abs(c.red() - c.blue())});
-            // Limpia cuadros grises de ajedrez y franjas negras/oscuras neutras de relleno
             if ((maxDiff < 18 && c.red() > 110) || (maxDiff < 10 && c.red() < 28)) {
                 linea[x] = qRgba(0, 0, 0, 0);
             }
@@ -87,7 +87,7 @@ QPixmap VentanaNivel1::limpiarVerdeChroma(const QPixmap& original) {
         QRgb* linea = reinterpret_cast<QRgb*>(img.scanLine(y));
         for (int x = 0; x < img.width(); ++x) {
             QColor c(linea[x]);
-            if (c.alpha() > 0 && c.green() > 170 && c.red() < 80 && c.blue() < 80) {
+            if (c.alpha() > 0 && c.green() > 140 && c.green() > c.red() + 60 && c.green() > c.blue() + 60) {
                 linea[x] = qRgba(0, 0, 0, 0);
             }
         }
@@ -130,11 +130,14 @@ QPixmap VentanaNivel1::recortarBordesTransparentes(const QPixmap& pix) {
     return pix.copy(minX, minY, anchoRecorte, altoRecorte);
 }
 
-void VentanaNivel1::extraerSpritesPorBlob(const QPixmap& sheet, int yInicio, int yFin, int altoObjetivo, std::vector<QPixmap>& destino) {
+void VentanaNivel1::extraerSpritesPorBlob(const QPixmap& sheet, int yInicio, int yFin, int altoReferenciaMax, int altoObjetivo, std::vector<QPixmap>& destino) {
     QImage img = sheet.toImage().convertToFormat(QImage::Format_ARGB32);
     int w = img.width();
     bool enSprite = false;
     int inicioX = 0;
+
+    std::vector<QPixmap> recortesCrudos;
+    int maxAltoDetectado = 1;
 
     for (int x = 0; x < w; ++x) {
         int pixelesOpacos = 0;
@@ -151,10 +154,101 @@ void VentanaNivel1::extraerSpritesPorBlob(const QPixmap& sheet, int yInicio, int
             int anchoSprite = x - inicioX;
             if (anchoSprite > 22) {
                 QPixmap recorte = recortarBordesTransparentes(sheet.copy(inicioX, yInicio, anchoSprite, yFin - yInicio));
-                destino.push_back(recorte.scaledToHeight(altoObjetivo, Qt::SmoothTransformation));
+                if (!recorte.isNull()) {
+                    maxAltoDetectado = std::max(maxAltoDetectado, recorte.height());
+                    recortesCrudos.push_back(recorte);
+                }
             }
         }
     }
+
+    int baseAltura = (altoReferenciaMax > 0) ? altoReferenciaMax : maxAltoDetectado;
+    double factorEscala = static_cast<double>(altoObjetivo) / static_cast<double>(baseAltura);
+
+    for (const QPixmap& rec : recortesCrudos) {
+        int nuevoAncho = std::max(1, static_cast<int>(std::round(rec.width() * factorEscala)));
+        int nuevoAlto  = std::max(1, static_cast<int>(std::round(rec.height() * factorEscala)));
+        destino.push_back(rec.scaled(nuevoAncho, nuevoAlto, Qt::IgnoreAspectRatio, Qt::SmoothTransformation));
+    }
+}
+
+void VentanaNivel1::actualizarBarraVidaPixelArt(int vidaActual, int vidaMax) {
+    if (vidaActual == ultimaVidaRenderizada) return;
+    ultimaVidaRenderizada = vidaActual;
+
+    const int w = 244;
+    const int h = 28;
+    QPixmap pix(w, h);
+    pix.fill(Qt::transparent);
+
+    QPainter p(&pix);
+    p.setRenderHint(QPainter::Antialiasing, false);
+
+    // 1. Contorno exterior pixel art escalonado (esquinas recortadas estilo 16-bit)
+    p.fillRect(4, 0, w - 8, h, QColor(15, 15, 20));
+    p.fillRect(0, 4, w, h - 8, QColor(15, 15, 20));
+    p.fillRect(2, 2, w - 4, h - 4, QColor(15, 15, 20));
+
+    // 2. Borde metálico claro / dorado pixelado
+    p.fillRect(4, 2, w - 8, 2, QColor(235, 215, 140));
+    p.fillRect(4, h - 4, w - 8, 2, QColor(150, 125, 65));
+    p.fillRect(2, 4, 2, h - 8, QColor(235, 215, 140));
+    p.fillRect(w - 4, 4, 2, h - 8, QColor(150, 125, 65));
+
+    // 3. Fondo interior oscuro de la barra
+    int innerX = 6;
+    int innerY = 6;
+    int innerW = w - 12;
+    int innerH = h - 12;
+    p.fillRect(innerX, innerY, innerW, innerH, QColor(55, 18, 22));
+
+    // 4. Relleno pixel art por bloques según salud
+    float pct = (vidaMax > 0) ? std::clamp(static_cast<float>(vidaActual) / static_cast<float>(vidaMax), 0.0f, 1.0f) : 0.0f;
+    int fillW = static_cast<int>(std::round((innerW * pct) / 2.0)) * 2;
+
+    if (fillW > 0) {
+        QColor colorBase, colorBrillo, colorSombra;
+        if (pct > 0.5f) {
+            colorBase   = QColor(46, 204, 113);
+            colorBrillo = QColor(130, 245, 175);
+            colorSombra = QColor(24, 135, 70);
+        } else if (pct > 0.25f) {
+            colorBase   = QColor(241, 196, 15);
+            colorBrillo = QColor(255, 238, 120);
+            colorSombra = QColor(175, 130, 10);
+        } else {
+            colorBase   = QColor(231, 76, 60);
+            colorBrillo = QColor(255, 145, 130);
+            colorSombra = QColor(155, 35, 25);
+        }
+
+        p.fillRect(innerX, innerY, fillW, innerH, colorBase);
+        // Franja superior pixelada de brillo
+        p.fillRect(innerX, innerY, fillW, 3, colorBrillo);
+        // Franja inferior pixelada de sombra
+        p.fillRect(innerX, innerY + innerH - 3, fillW, 3, colorSombra);
+    }
+
+    // 5. Divisiones verticales tipo celdas de energía (10 segmentos)
+    int segmentos = 10;
+    for (int i = 1; i < segmentos; ++i) {
+        int sx = innerX + (innerW * i) / segmentos;
+        p.fillRect(sx, innerY, 2, innerH, QColor(15, 15, 20, 190));
+    }
+
+    // 6. Texto pixelado con sombra dura
+    QFont fontPixel("Courier New", 10, QFont::Bold);
+    fontPixel.setStyleStrategy(QFont::NoAntialias);
+    p.setFont(fontPixel);
+    QString etiqueta = QString("HP %1/%2").arg(vidaActual).arg(vidaMax);
+
+    p.setPen(QColor(10, 10, 15));
+    p.drawText(QRect(innerX + 2, innerY + 1, innerW, innerH), Qt::AlignCenter, etiqueta);
+    p.setPen(Qt::white);
+    p.drawText(QRect(innerX, innerY - 1, innerW, innerH), Qt::AlignCenter, etiqueta);
+
+    p.end();
+    itemBarraVida->setPixmap(pix);
 }
 
 void VentanaNivel1::construirEscenario() {
@@ -223,7 +317,46 @@ void VentanaNivel1::construirEscenario() {
         }
     }
 
-    // 4. Zona Segura
+    // 4. Cartel de indicaciones de controles en el escenario (no en el HUD superior)
+    {
+        const int cw = 310;
+        const int ch = 122;
+        QPixmap cartelPix(cw, ch);
+        cartelPix.fill(Qt::transparent);
+
+        QPainter p(&cartelPix);
+        p.setRenderHint(QPainter::Antialiasing, false);
+
+        // Marco pixel art estilo tablón de campo
+        p.fillRect(4, 0, cw - 8, ch, QColor(20, 18, 15, 215));
+        p.fillRect(0, 4, cw, ch - 8, QColor(20, 18, 15, 215));
+        p.fillRect(4, 2, cw - 8, 2, QColor(210, 180, 110));
+        p.fillRect(4, ch - 4, cw - 8, 2, QColor(130, 105, 55));
+        p.fillRect(2, 4, 2, ch - 8, QColor(210, 180, 110));
+        p.fillRect(cw - 4, 4, 2, ch - 8, QColor(130, 105, 55));
+
+        QFont fTitulo("Courier New", 10, QFont::Bold);
+        fTitulo.setStyleStrategy(QFont::NoAntialias);
+        p.setFont(fTitulo);
+        p.setPen(QColor(255, 220, 95));
+        p.drawText(QRect(12, 8, cw - 24, 18), Qt::AlignLeft | Qt::AlignVCenter, "INDICACIONES DE COMBATE:");
+
+        QFont fTexto("Courier New", 9, QFont::Bold);
+        fTexto.setStyleStrategy(QFont::NoAntialias);
+        p.setFont(fTexto);
+        p.setPen(QColor(240, 240, 240));
+        p.drawText(14, 40, "[A / D] o Flechas : Moverse");
+        p.drawText(14, 58, "[W / Espacio]     : Saltar");
+        p.drawText(14, 76, "[H]               : Golpe cuerpo a cuerpo");
+        p.drawText(14, 94, "[J] Lanzar Escudo | [K] Cubrirse");
+        p.end();
+
+        QGraphicsPixmapItem* itemCartel = escena->addPixmap(cartelPix);
+        itemCartel->setPos(45, 195);
+        itemCartel->setZValue(-1);
+    }
+
+    // 5. Zona Segura
     QRectF zona = controlador->getZonaEvacuacion();
     escena->addRect(zona, QPen(QPen(Qt::darkGreen, 3)), QBrush(QColor(46, 204, 113, 110)));
     QGraphicsTextItem* txtZona = escena->addText("ZONA SEGURA");
@@ -231,31 +364,22 @@ void VentanaNivel1::construirEscenario() {
     txtZona->setFont(QFont("Arial", 13, QFont::Bold));
     txtZona->setPos(zona.x() + 45, zona.y() - 28);
 
-    // 5. HUD y Barra de Vida
+    // 6. HUD superior y Barra de Vida Pixel Art
     hudTexto = escena->addText("Tiempo: 03:30 | Rescatados: 0/5 | Estado: Normal");
     hudTexto->setDefaultTextColor(Qt::white);
     hudTexto->setFont(QFont("Arial", 16, QFont::Bold));
     hudTexto->setZValue(10);
 
-    barraVidaFondo = escena->addRect(0, 0, 220, 20, QPen(Qt::white, 2), QBrush(QColor(120, 20, 20)));
-    barraVidaFondo->setZValue(10);
-
-    barraVidaRelleno = escena->addRect(0, 0, 216, 16, QPen(Qt::NoPen), QBrush(QColor(46, 204, 113)));
-    barraVidaRelleno->setZValue(11);
-
-    textoVida = escena->addText("SALUD: 100/100");
-    textoVida->setDefaultTextColor(Qt::white);
-    textoVida->setFont(QFont("Arial", 10, QFont::Bold));
-    textoVida->setZValue(12);
+    itemBarraVida = escena->addPixmap(QPixmap());
+    itemBarraVida->setZValue(11);
+    actualizarBarraVidaPixelArt(controlador->getHeroe()->getVidaActual(), controlador->getHeroe()->getVidaMax());
 }
 
 void VentanaNivel1::cargarSprites() {
-    // Correr compacto (74 px), acciones de combate, defensa y salto más grandes (92 px)
-    const int ALTURA_CORRER  = 74;
-    const int ALTURA_ACCION  = 92;
-    const int ALTURA_NPCS    = 88;
+    const int ALTURA_CORRER   = 76;
+    const int ALTURA_ESTANDAR = 88;
 
-    // --- A. CAPITÁN CORRIENDO (Filtra celdas vacías o con degradados de fondo) ---
+    // --- A. CAPITÁN CORRIENDO ---
     QPixmap sheetCorrer;
     try {
         if (!sheetCorrer.load(":/new/prefix1/Sprite_Correr.png")) {
@@ -300,14 +424,14 @@ void VentanaNivel1::cargarSprites() {
         framesCorrer.push_back(pixQuieto);
     }
 
-    // --- B. CAPITÁN SALTANDO (Tira horizontal completa de 13 frames de izquierda a derecha) ---
+    // --- B. CAPITÁN SALTANDO ---
     QPixmap sheetSaltar;
     try {
         if (!sheetSaltar.load(":/new/prefix1/Sprite_Saltar.png")) {
             throw std::runtime_error("Error cargando :/new/prefix1/Sprite_Saltar.png");
         }
         QPixmap saltoLimpio = limpiarVerdeChroma(sheetSaltar);
-        extraerSpritesPorBlob(saltoLimpio, 0, saltoLimpio.height(), ALTURA_ACCION, framesSaltar);
+        extraerSpritesPorBlob(saltoLimpio, 0, saltoLimpio.height(), 145, ALTURA_ESTANDAR, framesSaltar);
 
         if (framesSaltar.empty()) {
             framesSaltar.push_back(pixQuieto);
@@ -317,28 +441,28 @@ void VentanaNivel1::cargarSprites() {
         framesSaltar.push_back(pixQuieto);
     }
 
-    // --- C. CAPITÁN PELEA CUERPO A CUERPO (Más grande: 92 px) ---
+    // --- C. CAPITÁN PELEA CUERPO A CUERPO ---
     QPixmap sheetLucha;
     try {
         if (!sheetLucha.load(":/new/prefix1/Lucha_cuerpoACuerpo.png")) {
             throw std::runtime_error("Error cargando Lucha_cuerpoACuerpo.png");
         }
         int mitadY = sheetLucha.height() / 2;
-        extraerSpritesPorBlob(sheetLucha, mitadY, sheetLucha.height(), ALTURA_ACCION, framesGolpear);
-        extraerSpritesPorBlob(sheetLucha, 0, mitadY, ALTURA_ACCION, framesGolpear);
+        extraerSpritesPorBlob(sheetLucha, mitadY, sheetLucha.height(), 105, ALTURA_ESTANDAR, framesGolpear);
+        extraerSpritesPorBlob(sheetLucha, 0, mitadY, 105, ALTURA_ESTANDAR, framesGolpear);
         if (framesGolpear.empty()) framesGolpear.push_back(pixQuieto);
     } catch (const std::exception& e) {
         qWarning() << e.what();
         framesGolpear.push_back(pixQuieto);
     }
 
-    // --- D. CAPITÁN DEFENSA / CUBRIRSE (Más grande: 92 px) ---
+    // --- D. CAPITÁN DEFENSA / CUBRIRSE ---
     QPixmap sheetDefensa;
     try {
         if (!sheetDefensa.load(":/new/prefix1/DefensaC.png")) {
             throw std::runtime_error("Error cargando DefensaC.png");
         }
-        extraerSpritesPorBlob(sheetDefensa, 0, sheetDefensa.height(), ALTURA_ACCION, framesDefensa);
+        extraerSpritesPorBlob(sheetDefensa, 0, sheetDefensa.height(), 0, ALTURA_ESTANDAR, framesDefensa);
         if (framesDefensa.empty()) framesDefensa.push_back(pixQuieto);
     } catch (const std::exception& e) {
         qWarning() << e.what();
@@ -382,18 +506,18 @@ void VentanaNivel1::cargarSprites() {
             for (int col = 0; col < 4; ++col) {
                 QPixmap celda = campSinFondo.copy(col * w + 4, fila * h + 4, w - 8, h - 8);
                 QPixmap recorte = recortarBordesTransparentes(celda);
-                animTipo.push_back(recorte.scaledToHeight(ALTURA_NPCS, Qt::SmoothTransformation));
+                animTipo.push_back(recorte.scaledToHeight(ALTURA_ESTANDAR, Qt::SmoothTransformation));
             }
             framesCampesinos.push_back(animTipo);
         }
     } catch (const std::exception& e) {
         qWarning() << e.what();
-        QPixmap fallback(55, ALTURA_NPCS);
+        QPixmap fallback(55, ALTURA_ESTANDAR);
         fallback.fill(Qt::yellow);
         framesCampesinos.push_back({fallback});
     }
 
-    // --- G. SOLDADOS ENEMIGOS (:/new/prefix1/Sprite_Enemigo.png) ---
+    // --- G. SOLDADOS ENEMIGOS ---
     QPixmap sheetEnemigo;
     try {
         if (!sheetEnemigo.load(":/new/prefix1/Sprite_Enemigo.png")) {
@@ -405,15 +529,15 @@ void VentanaNivel1::cargarSprites() {
 
         for (int col = 0; col < 6; ++col) {
             QPixmap recorte = recortarBordesTransparentes(enemigoSinFondo.copy(col * w, 0, w, h));
-            framesEnemigoCaminar.push_back(recorte.scaledToHeight(ALTURA_NPCS, Qt::SmoothTransformation));
+            framesEnemigoCaminar.push_back(recorte.scaledToHeight(ALTURA_ESTANDAR, Qt::SmoothTransformation));
         }
         for (int col = 0; col < 6; ++col) {
             QPixmap recorte = recortarBordesTransparentes(enemigoSinFondo.copy(col * w, h, w, h));
-            framesEnemigoDisparar.push_back(recorte.scaledToHeight(ALTURA_NPCS, Qt::SmoothTransformation));
+            framesEnemigoDisparar.push_back(recorte.scaledToHeight(ALTURA_ESTANDAR, Qt::SmoothTransformation));
         }
     } catch (const std::exception& e) {
         qWarning() << e.what();
-        QPixmap fallback(55, ALTURA_NPCS);
+        QPixmap fallback(55, ALTURA_ESTANDAR);
         fallback.fill(Qt::darkRed);
         framesEnemigoCaminar.push_back(fallback);
         framesEnemigoDisparar.push_back(fallback);
@@ -487,7 +611,6 @@ void VentanaNivel1::actualizarAnimaciones(int direccion) {
         float vy = heroe->getVelY();
         int total = static_cast<int>(framesSaltar.size());
 
-        // Progresión lineal continua desde impulso inicial (vy = -560) hasta aterrizaje (vy = +560)
         float progreso = (vy + 560.0f) / 1120.0f;
         if (progreso < 0.0f) progreso = 0.0f;
         if (progreso > 0.999f) progreso = 0.999f;
@@ -625,9 +748,11 @@ void VentanaNivel1::actualizarFrame() {
     actualizarAnimaciones(dir);
 
     CapitanAmerica* heroe = controlador->getHeroe();
-    double altoHeroePix = itemHeroe->pixmap().height();
+    double anchoHeroePix = itemHeroe->pixmap().width();
+    double altoHeroePix  = itemHeroe->pixmap().height();
+    double xCentradaHeroe = heroe->getPosX() + (70.0 - anchoHeroePix) * 0.5;
     double yAlineadaHeroe = (heroe->getPosY() + 95.0) - altoHeroePix + 4.0;
-    itemHeroe->setPos(heroe->getPosX(), yAlineadaHeroe);
+    itemHeroe->setPos(xCentradaHeroe, yAlineadaHeroe);
 
     EscudoVibranium* escudo = heroe->getEscudo();
     itemEscudo->setVisible(escudo->estaActivo());
@@ -661,20 +786,11 @@ void VentanaNivel1::actualizarFrame() {
     centerOn(heroe->getPosX() + 260.0f, 290.0f);
 
     refrescarTextoHUD();
-    hudTexto->setPos(mapToScene(25, 20));
+    hudTexto->setPos(mapToScene(25, 16));
 
-    QPointF posBarra = mapToScene(25, 55);
-    barraVidaFondo->setPos(posBarra);
-    barraVidaRelleno->setPos(posBarra.x() + 2, posBarra.y() + 2);
-    textoVida->setPos(posBarra.x() + 55, posBarra.y() - 1);
-
-    float porcentaje = static_cast<float>(heroe->getVidaActual()) / static_cast<float>(heroe->getVidaMax());
-    barraVidaRelleno->setRect(0, 0, 216.0 * porcentaje, 16.0);
-    if (porcentaje > 0.5f) barraVidaRelleno->setBrush(QBrush(QColor(46, 204, 113)));
-    else if (porcentaje > 0.25f) barraVidaRelleno->setBrush(QBrush(QColor(241, 196, 15)));
-    else barraVidaRelleno->setBrush(QBrush(QColor(231, 76, 60)));
-
-    textoVida->setPlainText(QString("SALUD: %1/%2").arg(heroe->getVidaActual()).arg(heroe->getVidaMax()));
+    // Barra de vida pixel art más separada debajo del texto superior
+    actualizarBarraVidaPixelArt(heroe->getVidaActual(), heroe->getVidaMax());
+    itemBarraVida->setPos(mapToScene(25, 66));
 }
 
 void VentanaNivel1::refrescarTextoHUD() {
