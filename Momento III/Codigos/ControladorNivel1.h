@@ -7,6 +7,7 @@
 #include <vector>
 #include "CapitanAmerica.h"
 #include "Civil.h"
+#include "Enemigo.h"
 
 struct Obstaculo {
     QRectF area;
@@ -25,6 +26,8 @@ private:
 
     CapitanAmerica* heroe;
     std::vector<Civil*> listaCiviles;
+    std::vector<Enemigo*> listaEnemigos;
+    std::vector<BalaEnemiga> balasEnemigas;
     std::vector<Obstaculo> mapaTerreno;
     QRectF zonaEvacuacion;
 
@@ -40,6 +43,8 @@ public:
 
     CapitanAmerica* getHeroe() const { return heroe; }
     const std::vector<Civil*>& getCiviles() const { return listaCiviles; }
+    const std::vector<Enemigo*>& getEnemigos() const { return listaEnemigos; }
+    const std::vector<BalaEnemiga>& getBalasEnemigas() const { return balasEnemigas; }
     const std::vector<Obstaculo>& getMapaTerreno() const { return mapaTerreno; }
     QRectF getZonaEvacuacion() const { return zonaEvacuacion; }
     int getTiempoRestante() const { return tiempoRestanteSegundos; }

@@ -2,7 +2,6 @@
 #define ESCUDOVIBRANIUM_H
 
 #include <QRectF>
-#include <cmath>
 
 class EscudoVibranium {
 private:
@@ -11,24 +10,21 @@ private:
     float velX;
     float velY;
     float radio;
-    float anguloTiro;
-    int rebotesRestantes;
     bool activo;
+    float tiempoVuelo;
 
 public:
-    EscudoVibranium(float r = 12.0f);
+    EscudoVibranium();
 
-    // Métodos del diagrama
-    void calcularTiroBalistico(float origenX, float origenY, float anguloGrados, float velocidadInicial);
+    void lanzar(float x, float y, float anguloGrados, float rapidez);
+    void actualizarMovimiento(float dt);
     void rebotarVectorial(float normalX, float normalY);
-    void actualizarMovimiento(float dt, float gravedad = 450.0f);
-
-    // Utilidades
-    bool estaActivo() const { return activo; }
     void desactivar() { activo = false; }
-    QRectF getHitBox() const;
+
+    bool estaActivo() const { return activo; }
     float getPosX() const { return posX; }
     float getPosY() const { return posY; }
+    QRectF getHitBox() const { return QRectF(posX - radio, posY - radio, radio * 2.0f, radio * 2.0f); }
 };
 
 #endif // ESCUDOVIBRANIUM_H

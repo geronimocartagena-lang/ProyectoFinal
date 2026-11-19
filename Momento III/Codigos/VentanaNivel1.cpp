@@ -13,8 +13,10 @@
 VentanaNivel1::VentanaNivel1(QWidget* parent)
     : QGraphicsView(parent),
     frameHeroeActual(0),
+    frameGolpeActual(0),
     frameEscudoActual(0),
     frameCivilActual(0),
+    frameEnemigoActual(0),
     contadorTicks(0),
     mirandoDerecha(true),
     teclaIzquierda(false),
@@ -97,8 +99,35 @@ QPixmap VentanaNivel1::recortarBordesTransparentes(const QPixmap& pix) {
     return pix.copy(minX, minY, (maxX - minX) + 1, (maxY - minY) + 1);
 }
 
+void VentanaNivel1::extraerSpritesPorBlob(const QPixmap& sheet, int yInicio, int yFin, std::vector<QPixmap>& destino) {
+    QImage img = sheet.toImage().convertToFormat(QImage::Format_ARGB32);
+    int w = img.width();
+    bool enSprite = false;
+    int inicioX = 0;
+
+    for (int x = 0; x < w; ++x) {
+        int pixelesOpacos = 0;
+        for (int y = yInicio; y < yFin; ++y) {
+            if (qAlpha(img.pixel(x, y)) > 30) {
+                pixelesOpacos++;
+            }
+        }
+        if (pixelesOpacos > 5 && !enSprite) {
+            enSprite = true;
+            inicioX = x;
+        } else if (pixelesOpacos <= 5 && enSprite) {
+            enSprite = false;
+            int anchoSprite = x - inicioX;
+            if (anchoSprite > 25) {
+                QPixmap recorte = recortarBordesTransparentes(sheet.copy(inicioX, yInicio, anchoSprite, yFin - yInicio));
+                destino.push_back(recorte.scaledToHeight(105, Qt::SmoothTransformation));
+            }
+        }
+    }
+}
+
 void VentanaNivel1::construirEscenario() {
-    // 1. Fondo completo del Nivel 1 en dos tramos para cubrir los 4500 px
+    // 1. Fondo del Nivel 1
     QPixmap fondoN1;
     try {
         if (!fondoN1.load(":/new/prefix1/FondoN1.jpg")) {
@@ -115,7 +144,7 @@ void VentanaNivel1::construirEscenario() {
         escena->setBackgroundBrush(QBrush(QColor(135, 175, 205)));
     }
 
-    // 2. Cargar :/new/prefix1/Suelo.png y recortar márgenes transparentes
+    // 2. Suelo continuo con :/new/prefix1/Suelo.png
     QPixmap texSuelo;
     bool tieneSuelo = false;
     try {
@@ -129,7 +158,6 @@ void VentanaNivel1::construirEscenario() {
         qWarning() << e.what();
     }
 
-    // 3. Piso continuo con Suelo.png desde Y = 465 hasta Y = 540 (sin separaciones)
     if (tieneSuelo) {
         int anchoTile = 90;
         int altoTile = 75;
@@ -144,7 +172,7 @@ void VentanaNivel1::construirEscenario() {
         escena->addRect(0, 477, 4500, 63, QPen(Qt::NoPen), QBrush(QColor(92, 64, 51)));
     }
 
-    // 4. Plataformas flotantes (continuas con Suelo.png) y zonas de fango
+    // 3. Plataformas flotantes (Suelo.png) y zonas de fango
     for (const auto& obs : controlador->getMapaTerreno()) {
         if (obs.esFango) {
             escena->addRect(obs.area, QPen(Qt::NoPen), QBrush(QColor(65, 42, 20, 220)));
@@ -164,7 +192,7 @@ void VentanaNivel1::construirEscenario() {
         }
     }
 
-    // 5. Zona Segura de Evacuación
+    // 4. Zona Segura
     QRectF zona = controlador->getZonaEvacuacion();
     escena->addRect(zona, QPen(QPen(Qt::darkGreen, 3)), QBrush(QColor(46, 204, 113, 110)));
     QGraphicsTextItem* txtZona = escena->addText("ZONA SEGURA");
@@ -172,16 +200,26 @@ void VentanaNivel1::construirEscenario() {
     txtZona->setFont(QFont("Arial", 13, QFont::Bold));
     txtZona->setPos(zona.x() + 30, zona.y() - 28);
 
-    // 6. HUD
+    // 5. HUD y Barra de Vida
     hudTexto = escena->addText("Tiempo: 03:00 | Rescatados: 0/5 | Estado: Normal");
     hudTexto->setDefaultTextColor(Qt::white);
     hudTexto->setFont(QFont("Arial", 16, QFont::Bold));
-    hudTexto->setPos(20, 15);
     hudTexto->setZValue(10);
+
+    barraVidaFondo = escena->addRect(0, 0, 220, 20, QPen(Qt::white, 2), QBrush(QColor(120, 20, 20)));
+    barraVidaFondo->setZValue(10);
+
+    barraVidaRelleno = escena->addRect(0, 0, 216, 16, QPen(Qt::NoPen), QBrush(QColor(46, 204, 113)));
+    barraVidaRelleno->setZValue(11);
+
+    textoVida = escena->addText("SALUD: 100/100");
+    textoVida->setDefaultTextColor(Qt::white);
+    textoVida->setFont(QFont("Arial", 10, QFont::Bold));
+    textoVida->setZValue(12);
 }
 
 void VentanaNivel1::cargarSprites() {
-    // --- A. CAPITÁN CORRIENDO (Matriz 4 cols x 3 filas) ---
+    // --- A. CAPITÁN CORRIENDO (con recorte exacto hasta las botas para que pise el suelo) ---
     QPixmap sheetCorrer;
     try {
         if (!sheetCorrer.load(":/new/prefix1/Sprite_Correr.png")) {
@@ -191,9 +229,8 @@ void VentanaNivel1::cargarSprites() {
         int h = sheetCorrer.height() / 3;
         for (int fila = 0; fila < 3; ++fila) {
             for (int col = 0; col < 4; ++col) {
-                QPixmap frame = sheetCorrer.copy(col * w, fila * h, w, h)
-                .scaled(95, 110, Qt::KeepAspectRatio, Qt::SmoothTransformation);
-                framesCorrer.push_back(frame);
+                QPixmap recorte = recortarBordesTransparentes(sheetCorrer.copy(col * w, fila * h, w, h));
+                framesCorrer.push_back(recorte.scaledToHeight(105, Qt::SmoothTransformation));
             }
         }
         pixQuieto = framesCorrer[0];
@@ -204,7 +241,7 @@ void VentanaNivel1::cargarSprites() {
         framesCorrer.push_back(pixQuieto);
     }
 
-    // --- B. CAPITÁN SALTANDO (7 fotogramas exactos con recorte interno limpio) ---
+    // --- B. CAPITÁN SALTANDO (7 cuadros recortados al borde de botas) ---
     QPixmap sheetSaltar;
     try {
         if (!sheetSaltar.load(":/new/prefix1/Sprite_Saltar.png")) {
@@ -218,16 +255,32 @@ void VentanaNivel1::cargarSprites() {
         for (int col = 0; col < cols; ++col) {
             int xInicio = static_cast<int>(col * anchoCelda) + margen;
             int anchoUtil = static_cast<int>(anchoCelda) - (margen * 2);
-            QPixmap frame = sheetSaltar.copy(xInicio, 0, anchoUtil, h)
-                                .scaled(95, 110, Qt::KeepAspectRatio, Qt::SmoothTransformation);
-            framesSaltar.push_back(frame);
+            QPixmap recorte = recortarBordesTransparentes(sheetSaltar.copy(xInicio, 0, anchoUtil, h));
+            framesSaltar.push_back(recorte.scaledToHeight(105, Qt::SmoothTransformation));
         }
     } catch (const std::exception& e) {
         qWarning() << e.what();
         framesSaltar.push_back(pixQuieto);
     }
 
-    // --- C. ESCUDO DE VIBRANIUM (4 cols x 4 filas) ---
+    // --- C. CAPITÁN PELEA CUERPO A CUERPO (Lucha_cuerpoACuerpo.png) ---
+    QPixmap sheetLucha;
+    try {
+        if (!sheetLucha.load(":/new/prefix1/Lucha_cuerpoACuerpo.png")) {
+            throw std::runtime_error("Error cargando Lucha_cuerpoACuerpo.png");
+        }
+        int mitadY = sheetLucha.height() / 2;
+        extraerSpritesPorBlob(sheetLucha, mitadY, sheetLucha.height(), framesGolpear);
+        extraerSpritesPorBlob(sheetLucha, 0, mitadY, framesGolpear);
+        if (framesGolpear.empty()) {
+            framesGolpear.push_back(pixQuieto);
+        }
+    } catch (const std::exception& e) {
+        qWarning() << e.what();
+        framesGolpear.push_back(pixQuieto);
+    }
+
+    // --- D. ESCUDO DE VIBRANIUM ---
     QPixmap sheetEscudo;
     try {
         if (!sheetEscudo.load(":/new/prefix1/SpritesEscudoAmerica.jpg")) {
@@ -238,9 +291,9 @@ void VentanaNivel1::cargarSprites() {
         int h = escudoSinFondo.height() / 4;
         for (int fila = 0; fila < 4; ++fila) {
             for (int col = 0; col < 4; ++col) {
-                QPixmap frame = escudoSinFondo.copy(col * w, fila * h, w, h)
-                .scaled(36, 36, Qt::KeepAspectRatio, Qt::SmoothTransformation);
-                framesEscudo.push_back(frame);
+                framesEscudo.push_back(
+                    escudoSinFondo.copy(col * w, fila * h, w, h).scaled(36, 36, Qt::KeepAspectRatio, Qt::SmoothTransformation)
+                    );
             }
         }
     } catch (const std::exception& e) {
@@ -250,7 +303,7 @@ void VentanaNivel1::cargarSprites() {
         framesEscudo.push_back(fallback);
     }
 
-    // --- D. CAMPESINOS (4 cols x 3 filas) ---
+    // --- E. CAMPESINOS (recortados hasta los pies) ---
     QPixmap sheetCampesinos;
     try {
         if (!sheetCampesinos.load(":/new/prefix1/spritesCampesinos.jpg")) {
@@ -262,9 +315,8 @@ void VentanaNivel1::cargarSprites() {
         for (int fila = 0; fila < 3; ++fila) {
             std::vector<QPixmap> animTipo;
             for (int col = 0; col < 4; ++col) {
-                QPixmap frame = campSinFondo.copy(col * w, fila * h, w, h)
-                .scaled(80, 100, Qt::KeepAspectRatio, Qt::SmoothTransformation);
-                animTipo.push_back(frame);
+                QPixmap recorte = recortarBordesTransparentes(campSinFondo.copy(col * w, fila * h, w, h));
+                animTipo.push_back(recorte.scaledToHeight(95, Qt::SmoothTransformation));
             }
             framesCampesinos.push_back(animTipo);
         }
@@ -275,6 +327,37 @@ void VentanaNivel1::cargarSprites() {
         framesCampesinos.push_back({fallback});
     }
 
+    // --- F. SOLDADOS ENEMIGOS (:/new/prefix1/Sprite_Enemigo.png: 6 cols x 3 filas) ---
+    QPixmap sheetEnemigo;
+    try {
+        if (!sheetEnemigo.load(":/new/prefix1/Sprite_Enemigo.png")) {
+            throw std::runtime_error("Error cargando :/new/prefix1/Sprite_Enemigo.png");
+        }
+        QPixmap enemigoSinFondo = limpiarFondoAjedrez(sheetEnemigo);
+        int w = enemigoSinFondo.width() / 6;
+        int h = enemigoSinFondo.height() / 3;
+
+        for (int col = 0; col < 6; ++col) {
+            QPixmap recorte = recortarBordesTransparentes(enemigoSinFondo.copy(col * w, 0, w, h));
+            framesEnemigoCaminar.push_back(recorte.scaledToHeight(105, Qt::SmoothTransformation));
+        }
+        for (int col = 0; col < 6; ++col) {
+            QPixmap recorte = recortarBordesTransparentes(enemigoSinFondo.copy(col * w, h, w, h));
+            framesEnemigoDisparar.push_back(recorte.scaledToHeight(105, Qt::SmoothTransformation));
+        }
+        pixBalaEnemiga = recortarBordesTransparentes(enemigoSinFondo.copy(2 * w, 2 * h, w, h))
+                             .scaled(22, 10, Qt::KeepAspectRatio, Qt::SmoothTransformation);
+    } catch (const std::exception& e) {
+        qWarning() << e.what();
+        QPixmap fallback(70, 105);
+        fallback.fill(Qt::darkRed);
+        framesEnemigoCaminar.push_back(fallback);
+        framesEnemigoDisparar.push_back(fallback);
+        pixBalaEnemiga = QPixmap(18, 8);
+        pixBalaEnemiga.fill(Qt::yellow);
+    }
+
+    // Instanciar ítems gráficos
     itemHeroe = escena->addPixmap(pixQuieto);
     itemHeroe->setZValue(2);
 
@@ -288,6 +371,19 @@ void VentanaNivel1::cargarSprites() {
         itemCivil->setZValue(1);
         itemsCiviles.push_back(itemCivil);
     }
+
+    for (size_t i = 0; i < controlador->getEnemigos().size(); ++i) {
+        QGraphicsPixmapItem* itemEnem = escena->addPixmap(framesEnemigoCaminar[0]);
+        itemEnem->setZValue(2);
+        itemsEnemigos.push_back(itemEnem);
+    }
+
+    for (int i = 0; i < 30; ++i) {
+        QGraphicsPixmapItem* bItem = escena->addPixmap(pixBalaEnemiga);
+        bItem->setVisible(false);
+        bItem->setZValue(4);
+        poolBalasEnemigas.push_back(bItem);
+    }
 }
 
 void VentanaNivel1::actualizarAnimaciones(int direccion) {
@@ -296,7 +392,13 @@ void VentanaNivel1::actualizarAnimaciones(int direccion) {
     QPixmap frameHeroe = pixQuieto;
     CapitanAmerica* heroe = controlador->getHeroe();
 
-    if (!heroe->isEnSuelo() && !framesSaltar.empty()) {
+    if (heroe->isAtacandoCuerpoACuerpo() && !framesGolpear.empty()) {
+        if (contadorTicks % 3 == 0) {
+            frameGolpeActual = (frameGolpeActual + 1) % static_cast<int>(framesGolpear.size());
+        }
+        frameHeroe = framesGolpear[frameGolpeActual % framesGolpear.size()];
+    } else if (!heroe->isEnSuelo() && !framesSaltar.empty()) {
+        frameGolpeActual = 0;
         float vy = heroe->getVelY();
         size_t idxSalto = 0;
         if (vy < -320.0f) idxSalto = 0;
@@ -309,11 +411,13 @@ void VentanaNivel1::actualizarAnimaciones(int direccion) {
 
         frameHeroe = framesSaltar[idxSalto % framesSaltar.size()];
     } else if (direccion != 0 && !framesCorrer.empty()) {
+        frameGolpeActual = 0;
         if (contadorTicks % 3 == 0) {
             frameHeroeActual = (frameHeroeActual + 1) % static_cast<int>(framesCorrer.size());
         }
         frameHeroe = framesCorrer[frameHeroeActual % framesCorrer.size()];
     } else {
+        frameGolpeActual = 0;
         frameHeroeActual = 0;
         frameHeroe = pixQuieto;
     }
@@ -332,9 +436,7 @@ void VentanaNivel1::actualizarAnimaciones(int direccion) {
         itemEscudo->setPixmap(framesEscudo[frameEscudoActual % framesEscudo.size()]);
     }
 
-    if (contadorTicks % 6 == 0) {
-        frameCivilActual++;
-    }
+    if (contadorTicks % 6 == 0) frameCivilActual++;
     const auto& civiles = controlador->getCiviles();
     if (!framesCampesinos.empty()) {
         for (size_t i = 0; i < civiles.size() && i < itemsCiviles.size(); ++i) {
@@ -352,6 +454,27 @@ void VentanaNivel1::actualizarAnimaciones(int direccion) {
                 }
             }
         }
+    }
+
+    if (contadorTicks % 5 == 0) frameEnemigoActual++;
+    const auto& enemigos = controlador->getEnemigos();
+    for (size_t i = 0; i < enemigos.size() && i < itemsEnemigos.size(); ++i) {
+        if (!enemigos[i]->isVivo()) {
+            itemsEnemigos[i]->setVisible(false);
+            continue;
+        }
+        itemsEnemigos[i]->setVisible(true);
+        const auto& listaFrames = enemigos[i]->isDisparando() ? framesEnemigoDisparar : framesEnemigoCaminar;
+        if (!listaFrames.empty()) {
+            QPixmap pixE = listaFrames[frameEnemigoActual % listaFrames.size()];
+            if (enemigos[i]->getDireccion() < 0) {
+                pixE = pixE.transformed(QTransform().scale(-1, 1));
+            }
+            itemsEnemigos[i]->setPixmap(pixE);
+        }
+        // Apoyar las botas del enemigo exactamente en Y = 465 (+4px sobre el césped)
+        double hEnem = itemsEnemigos[i]->pixmap().height();
+        itemsEnemigos[i]->setPos(enemigos[i]->getPosX(), (enemigos[i]->getPosY() + 105.0) - hEnem + 4.0);
     }
 }
 
@@ -372,6 +495,9 @@ void VentanaNivel1::keyPressEvent(QKeyEvent* event) {
     case Qt::Key_W:
     case Qt::Key_Space:
         controlador->getHeroe()->saltar();
+        break;
+    case Qt::Key_H:
+        controlador->getHeroe()->iniciarGolpeCuerpoACuerpo();
         break;
     case Qt::Key_J:
         controlador->getHeroe()->lanzarEscudo(mirandoDerecha ? 25.0f : 155.0f);
@@ -414,7 +540,10 @@ void VentanaNivel1::actualizarFrame() {
     actualizarAnimaciones(dir);
 
     CapitanAmerica* heroe = controlador->getHeroe();
-    itemHeroe->setPos(heroe->getPosX(), heroe->getPosY());
+    // Alinear siempre las botas del héroe con el borde del piso/plataforma (+4px sobre el césped)
+    double altoHeroePix = itemHeroe->pixmap().height();
+    double yAlineadaHeroe = (heroe->getPosY() + 105.0) - altoHeroePix + 4.0;
+    itemHeroe->setPos(heroe->getPosX(), yAlineadaHeroe);
 
     EscudoVibranium* escudo = heroe->getEscudo();
     itemEscudo->setVisible(escudo->estaActivo());
@@ -425,13 +554,44 @@ void VentanaNivel1::actualizarFrame() {
     const auto& civiles = controlador->getCiviles();
     for (size_t i = 0; i < civiles.size(); ++i) {
         itemsCiviles[i]->setVisible(!civiles[i]->isEvacuado());
-        itemsCiviles[i]->setPos(civiles[i]->getPosX(), civiles[i]->getPosY());
+        double altoCivilPix = itemsCiviles[i]->pixmap().height();
+        double yAlineadaCivil = (civiles[i]->getPosY() + 95.0) - altoCivilPix + 4.0;
+        itemsCiviles[i]->setPos(civiles[i]->getPosX(), yAlineadaCivil);
+    }
+
+    // Actualizar balas enemigas
+    const auto& balas = controlador->getBalasEnemigas();
+    for (size_t i = 0; i < poolBalasEnemigas.size(); ++i) {
+        if (i < balas.size() && balas[i].activa) {
+            poolBalasEnemigas[i]->setVisible(true);
+            QPixmap pBala = pixBalaEnemiga;
+            if (balas[i].vx < 0) {
+                pBala = pBala.transformed(QTransform().scale(-1, 1));
+            }
+            poolBalasEnemigas[i]->setPixmap(pBala);
+            poolBalasEnemigas[i]->setPos(balas[i].x, balas[i].y);
+        } else {
+            poolBalasEnemigas[i]->setVisible(false);
+        }
     }
 
     centerOn(heroe->getPosX() + 260.0f, 290.0f);
 
     refrescarTextoHUD();
     hudTexto->setPos(mapToScene(25, 20));
+
+    QPointF posBarra = mapToScene(25, 55);
+    barraVidaFondo->setPos(posBarra);
+    barraVidaRelleno->setPos(posBarra.x() + 2, posBarra.y() + 2);
+    textoVida->setPos(posBarra.x() + 55, posBarra.y() - 1);
+
+    float porcentaje = static_cast<float>(heroe->getVidaActual()) / static_cast<float>(heroe->getVidaMax());
+    barraVidaRelleno->setRect(0, 0, 216.0 * porcentaje, 16.0);
+    if (porcentaje > 0.5f) barraVidaRelleno->setBrush(QBrush(QColor(46, 204, 113)));
+    else if (porcentaje > 0.25f) barraVidaRelleno->setBrush(QBrush(QColor(241, 196, 15)));
+    else barraVidaRelleno->setBrush(QBrush(QColor(231, 76, 60)));
+
+    textoVida->setPlainText(QString("SALUD: %1/%2").arg(heroe->getVidaActual()).arg(heroe->getVidaMax()));
 }
 
 void VentanaNivel1::refrescarTextoHUD() {
@@ -454,6 +614,6 @@ void VentanaNivel1::manejarFinNivel(bool victoria) {
                                  "Cinemática: En el futuro, Donald Trump observa el mapa de Colombia y Panamá:\n"
                                  "«Que Colombia pelee entre ellos. Me quedaré con Panamá».");
     } else {
-        QMessageBox::warning(this, "Tiempo Agotado", "No lograste evacuar el pueblo a tiempo.");
+        QMessageBox::warning(this, "Misión Fallida", "Has perdido toda tu salud o se agotó el tiempo.");
     }
 }

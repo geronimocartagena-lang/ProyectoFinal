@@ -1,42 +1,53 @@
 #ifndef CAPITANAMERICA_H
 #define CAPITANAMERICA_H
 
-#include "Personaje.h"
-#include "Civil.h"
-#include "EscudoVibranium.h"
 #include <QString>
+#include <QRectF>
+#include "Personaje.h"
+#include "EscudoVibranium.h"
+#include "Civil.h"
 
 class CapitanAmerica : public Personaje {
 private:
-    QString estadoEspecial; // "Normal", "Fortachon", "Veloz"
-    bool tieneEscudo;
+    EscudoVibranium* escudo;
+    int civilesRescatados;
+    bool modoVeloz;
     bool bloqueando;
-    float tiempoEstadoEspecial;
-    float multiplicadorVelocidad;
-    int fuerzaEscudo;
-    EscudoVibranium* escudo; // Asociación 1 a 1
+    bool atacandoCuerpoACuerpo;
+    bool mirandoDerecha;
+    float timerGolpe;
+    bool golpeYaImpacto;
+
+    int vidaMax;
+    int vidaActual;
+    float invulnerableTimer;
 
 public:
     CapitanAmerica(float x, float y);
     ~CapitanAmerica() override;
 
-    // Métodos del diagrama
-    void rescatarCivil(Civil* civil);
-    void activarModoFortachon();
-    void activarModoVeloz();
-    void lanzarEscudo(float anguloGrados);
-    void bloquear(bool estado);
-
-    // Actualización y control
-    void actualizarEstado(float dt);
     void moverHorizontal(int direccion, float friccionTerreno);
     void saltar();
+    void lanzarEscudo(float anguloGrados);
+    void iniciarGolpeCuerpoACuerpo();
+    void bloquear(bool activo) { bloqueando = activo; }
+    void rescatarCivil(Civil* civil);
+    void activarModoVeloz();
+    void actualizarEstado(float dt);
 
-    // Getters
-    bool isBloqueando() const { return bloqueando; }
-    QString getEstadoEspecial() const { return estadoEspecial; }
+    void recibirDanio(int danio);
+    QRectF getHitBoxGolpe() const;
+
     EscudoVibranium* getEscudo() const { return escudo; }
-    int getFuerzaEscudo() const { return fuerzaEscudo; }
+    int getCivilesRescatados() const { return civilesRescatados; }
+    bool isModoVeloz() const { return modoVeloz; }
+    bool isBloqueando() const { return bloqueando; }
+    bool isAtacandoCuerpoACuerpo() const { return atacandoCuerpoACuerpo; }
+    bool isGolpeYaImpacto() const { return golpeYaImpacto; }
+    void marcarGolpeImpactado() { golpeYaImpacto = true; }
+    int getVidaActual() const { return vidaActual; }
+    int getVidaMax() const { return vidaMax; }
+    QString getEstadoEspecial() const;
 };
 
 #endif // CAPITANAMERICA_H

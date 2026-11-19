@@ -36,6 +36,8 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
         VentanaNivel1.cpp
         VentanaNivel1.h
         recursos.qrc
+        Enemigo.cpp
+        Enemigo.h
     )
 # Define target properties for Android with Qt 6 as:
 #    set_property(TARGET Codigos APPEND PROPERTY QT_ANDROID_PACKAGE_SOURCE_DIR

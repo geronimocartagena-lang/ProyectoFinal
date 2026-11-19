@@ -4,6 +4,7 @@
 #include <QGraphicsView>
 #include <QGraphicsScene>
 #include <QGraphicsPixmapItem>
+#include <QGraphicsRectItem>
 #include <QGraphicsTextItem>
 #include <QKeyEvent>
 #include <QResizeEvent>
@@ -23,17 +24,29 @@ private:
     QGraphicsPixmapItem* itemHeroe;
     QGraphicsPixmapItem* itemEscudo;
     std::vector<QGraphicsPixmapItem*> itemsCiviles;
+    std::vector<QGraphicsPixmapItem*> itemsEnemigos;
+    std::vector<QGraphicsPixmapItem*> poolBalasEnemigas;
+
     QGraphicsTextItem* hudTexto;
+    QGraphicsRectItem* barraVidaFondo;
+    QGraphicsRectItem* barraVidaRelleno;
+    QGraphicsTextItem* textoVida;
 
     QPixmap pixQuieto;
     std::vector<QPixmap> framesCorrer;
     std::vector<QPixmap> framesSaltar;
+    std::vector<QPixmap> framesGolpear;
     std::vector<QPixmap> framesEscudo;
     std::vector<std::vector<QPixmap>> framesCampesinos;
+    std::vector<QPixmap> framesEnemigoCaminar;
+    std::vector<QPixmap> framesEnemigoDisparar;
+    QPixmap pixBalaEnemiga;
 
     int frameHeroeActual;
+    int frameGolpeActual;
     int frameEscudoActual;
     int frameCivilActual;
+    int frameEnemigoActual;
     int contadorTicks;
     bool mirandoDerecha;
 
@@ -44,6 +57,7 @@ private:
     void cargarSprites();
     QPixmap limpiarFondoAjedrez(const QPixmap& original);
     QPixmap recortarBordesTransparentes(const QPixmap& pix);
+    void extraerSpritesPorBlob(const QPixmap& sheet, int yInicio, int yFin, std::vector<QPixmap>& destino);
     void actualizarAnimaciones(int direccion);
     void refrescarTextoHUD();
 

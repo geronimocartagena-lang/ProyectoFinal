@@ -7,33 +7,32 @@ class Personaje {
 protected:
     float posX;
     float posY;
-    float velX;
-    float velY;
-    int puntosSalud;
     float ancho;
     float alto;
+    float velX;
+    float velY;
+    float velocidadBase;
     bool enSuelo;
 
 public:
-    Personaje(float x, float y, int salud, float w = 40.0f, float h = 60.0f);
+    Personaje(float x, float y, float w, float h, float vel);
     virtual ~Personaje() = default;
 
-    // Métodos principales del diagrama
-    virtual void actualizarFisica(float dt, float gravedad = 980.0f);
-    virtual void recibirDanio(int cantidad);
+    virtual void actualizarFisica(float dt);
 
-    // Getters y Setters para colisiones y estado
-    QRectF getHitBox() const;
     float getPosX() const { return posX; }
     float getPosY() const { return posY; }
+    float getVelX() const { return velX; }
     float getVelY() const { return velY; }
-    int getPuntosSalud() const { return puntosSalud; }
     bool isEnSuelo() const { return enSuelo; }
 
+    void setPosX(float x) { posX = x; }
     void setPosY(float y) { posY = y; }
+    void setVelX(float vx) { velX = vx; }
     void setVelY(float vy) { velY = vy; }
     void setEnSuelo(bool estado) { enSuelo = estado; }
-    void setVelocidad(float vx, float vy) { velX = vx; velY = vy; }
+
+    QRectF getHitBox() const { return QRectF(posX + 12.0f, posY + 5.0f, ancho - 24.0f, alto - 5.0f); }
 };
 
 #endif // PERSONAJE_H

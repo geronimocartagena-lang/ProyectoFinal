@@ -1,13 +1,17 @@
 #include "CapitanAmerica.h"
 
 CapitanAmerica::CapitanAmerica(float x, float y)
-    : Personaje(x, y, 100, 45.0f, 65.0f),
-    estadoEspecial("Normal"),
-    tieneEscudo(true),
+    : Personaje(x, y, 75.0f, 105.0f, 270.0f),
+    civilesRescatados(0),
+    modoVeloz(false),
     bloqueando(false),
-    tiempoEstadoEspecial(0.0f),
-    multiplicadorVelocidad(1.0f),
-    fuerzaEscudo(25) {
+    atacandoCuerpoACuerpo(false),
+    mirandoDerecha(true),
+    timerGolpe(0.0f),
+    golpeYaImpacto(false),
+    vidaMax(100),
+    vidaActual(100),
+    invulnerableTimer(0.0f) {
     escudo = new EscudoVibranium();
 }
 
@@ -15,64 +19,92 @@ CapitanAmerica::~CapitanAmerica() {
     delete escudo;
 }
 
-void CapitanAmerica::rescatarCivil(Civil* civil) {
-    if (civil != nullptr && !civil->isRescatado()) {
-        civil->liberar();
-        activarModoFortachon();
-    }
-}
-
-void CapitanAmerica::activarModoFortachon() {
-    estadoEspecial = "Fortachon";
-    tiempoEstadoEspecial = 8.0f;
-    fuerzaEscudo = 40;
-    multiplicadorVelocidad = 0.85f;
-}
-
-void CapitanAmerica::activarModoVeloz() {
-    estadoEspecial = "Veloz";
-    tiempoEstadoEspecial = 10.0f;
-    fuerzaEscudo = 25;
-    multiplicadorVelocidad = 1.25f;
-}
-
-void CapitanAmerica::lanzarEscudo(float anguloGrados) {
-    if (tieneEscudo && !escudo->estaActivo() && !bloqueando) {
-        escudo->calcularTiroBalistico(posX + 22.0f, posY + 25.0f, anguloGrados, 520.0f);
-        tieneEscudo = false;
-    }
-}
-
-void CapitanAmerica::bloquear(bool estado) {
-    if (tieneEscudo) {
-        bloqueando = estado;
-    }
-}
-
-void CapitanAmerica::actualizarEstado(float dt) {
-    if (tiempoEstadoEspecial > 0.0f) {
-        tiempoEstadoEspecial -= dt;
-        if (tiempoEstadoEspecial <= 0.0f) {
-            estadoEspecial = "Normal";
-            multiplicadorVelocidad = 1.0f;
-            fuerzaEscudo = 25;
-        }
-    }
-
-    if (!tieneEscudo && !escudo->estaActivo()) {
-        tieneEscudo = true;
-    }
-}
-
 void CapitanAmerica::moverHorizontal(int direccion, float friccionTerreno) {
-    // Modelo Físico 3: Rozamiento dinámico en fango
-    float velocidadBase = 240.0f * multiplicadorVelocidad;
-    velX = direccion * velocidadBase * (1.0f - friccionTerreno);
+    if (direccion > 0) mirandoDerecha = true;
+    else if (direccion < 0) mirandoDerecha = false;
+
+    float multiplicador = modoVeloz ? 1.45f : 1.0f;
+    if (bloqueando || atacandoCuerpoACuerpo) {
+        multiplicador *= 0.45f;
+    }
+
+    float factorFriccion = 1.0f - friccionTerreno;
+    if (factorFriccion < 0.25f) factorFriccion = 0.25f;
+
+    velX = direccion * velocidadBase * multiplicador * factorFriccion;
 }
 
 void CapitanAmerica::saltar() {
     if (enSuelo) {
-        velY = -490.0f * multiplicadorVelocidad; // Impulso vertical calibrado con g = 980
+        velY = -560.0f;
         enSuelo = false;
     }
+}
+
+void CapitanAmerica::lanzarEscudo(float anguloGrados) {
+    if (!escudo->estaActivo() && !bloqueando && !atacandoCuerpoACuerpo) {
+        float origenX = posX + (ancho * 0.5f);
+        float origenY = posY + (alto * 0.35f);
+        escudo->lanzar(origenX, origenY, anguloGrados, 680.0f);
+    }
+}
+
+void CapitanAmerica::iniciarGolpeCuerpoACuerpo() {
+    if (!atacandoCuerpoACuerpo && !bloqueando) {
+        atacandoCuerpoACuerpo = true;
+        timerGolpe = 0.36f;
+        golpeYaImpacto = false;
+    }
+}
+
+void CapitanAmerica::rescatarCivil(Civil* civil) {
+    if (civil && !civil->isRescatado()) {
+        civil->rescatar(civilesRescatados);
+        civilesRescatados++;
+    }
+}
+
+void CapitanAmerica::activarModoVeloz() {
+    modoVeloz = true;
+}
+
+void CapitanAmerica::actualizarEstado(float dt) {
+    if (invulnerableTimer > 0.0f) {
+        invulnerableTimer -= dt;
+    }
+
+    if (atacandoCuerpoACuerpo) {
+        timerGolpe -= dt;
+        if (timerGolpe <= 0.0f) {
+            atacandoCuerpoACuerpo = false;
+            timerGolpe = 0.0f;
+        }
+    }
+}
+
+void CapitanAmerica::recibirDanio(int danio) {
+    if (invulnerableTimer > 0.0f) return;
+    if (bloqueando) {
+        danio = danio / 4;
+    }
+    vidaActual -= danio;
+    if (vidaActual < 0) vidaActual = 0;
+    invulnerableTimer = 0.65f;
+}
+
+QRectF CapitanAmerica::getHitBoxGolpe() const {
+    if (!atacandoCuerpoACuerpo) return QRectF();
+    float alcance = 55.0f;
+    if (mirandoDerecha) {
+        return QRectF(posX + ancho - 10.0f, posY + 15.0f, alcance, alto - 30.0f);
+    } else {
+        return QRectF(posX - alcance + 10.0f, posY + 15.0f, alcance, alto - 30.0f);
+    }
+}
+
+QString CapitanAmerica::getEstadoEspecial() const {
+    if (atacandoCuerpoACuerpo) return "Golpe Cuerpo a Cuerpo";
+    if (bloqueando) return "Escudo en Guardia";
+    if (modoVeloz) return "MODO VELOZ (+45%)";
+    return "Normal";
 }
