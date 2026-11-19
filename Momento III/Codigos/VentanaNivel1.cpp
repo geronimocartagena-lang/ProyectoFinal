@@ -81,6 +81,20 @@ QPixmap VentanaNivel1::limpiarFondoAjedrez(const QPixmap& original) {
     return QPixmap::fromImage(img);
 }
 
+QPixmap VentanaNivel1::limpiarVerdeChroma(const QPixmap& original) {
+    QImage img = original.toImage().convertToFormat(QImage::Format_ARGB32);
+    for (int y = 0; y < img.height(); ++y) {
+        QRgb* linea = reinterpret_cast<QRgb*>(img.scanLine(y));
+        for (int x = 0; x < img.width(); ++x) {
+            QColor c(linea[x]);
+            if (c.alpha() > 0 && c.green() > 170 && c.red() < 80 && c.blue() < 80) {
+                linea[x] = qRgba(0, 0, 0, 0);
+            }
+        }
+    }
+    return QPixmap::fromImage(img);
+}
+
 QPixmap VentanaNivel1::recortarBordesTransparentes(const QPixmap& pix) {
     QImage img = pix.toImage().convertToFormat(QImage::Format_ARGB32);
     int w = img.width();
@@ -286,26 +300,14 @@ void VentanaNivel1::cargarSprites() {
         framesCorrer.push_back(pixQuieto);
     }
 
-    // --- B. CAPITÁN SALTANDO (Rango vertical completo 22% a 74% para no cortar cabeza ni botas) ---
+    // --- B. CAPITÁN SALTANDO (Tira horizontal completa de 13 frames de izquierda a derecha) ---
     QPixmap sheetSaltar;
     try {
         if (!sheetSaltar.load(":/new/prefix1/Sprite_Saltar.png")) {
             throw std::runtime_error("Error cargando :/new/prefix1/Sprite_Saltar.png");
         }
-        int yInicioSalto = static_cast<int>(sheetSaltar.height() * 0.22);
-        int yFinSalto    = static_cast<int>(sheetSaltar.height() * 0.74);
-
-        extraerSpritesPorBlob(sheetSaltar, yInicioSalto, yFinSalto, ALTURA_ACCION, framesSaltar);
-
-        if (framesCorrer.size() <= 1 && pixQuieto.width() <= 60) {
-            std::vector<QPixmap> guardiaInferior;
-            extraerSpritesPorBlob(sheetSaltar, static_cast<int>(sheetSaltar.height() * 0.75),
-                                  sheetSaltar.height(), ALTURA_CORRER, guardiaInferior);
-            if (!guardiaInferior.empty()) {
-                pixQuieto = guardiaInferior[0];
-                framesCorrer[0] = pixQuieto;
-            }
-        }
+        QPixmap saltoLimpio = limpiarVerdeChroma(sheetSaltar);
+        extraerSpritesPorBlob(saltoLimpio, 0, saltoLimpio.height(), ALTURA_ACCION, framesSaltar);
 
         if (framesSaltar.empty()) {
             framesSaltar.push_back(pixQuieto);
@@ -485,23 +487,11 @@ void VentanaNivel1::actualizarAnimaciones(int direccion) {
         float vy = heroe->getVelY();
         int total = static_cast<int>(framesSaltar.size());
 
-        // Mapeo progresivo único según la parábola de salto (sin repetir frames)
-        int idxSalto = 0;
-        if (total >= 9) {
-            if (vy < -380.0f)      idxSalto = 0;
-            else if (vy < -230.0f) idxSalto = 1;
-            else if (vy < -110.0f) idxSalto = 5;
-            else if (vy < 0.0f)    idxSalto = 6;
-            else if (vy < 110.0f)  idxSalto = 7;
-            else if (vy < 230.0f)  idxSalto = 8;
-            else if (vy < 360.0f)  idxSalto = 2;
-            else                   idxSalto = 3;
-        } else {
-            float progreso = (vy + 560.0f) / 1120.0f;
-            if (progreso < 0.0f) progreso = 0.0f;
-            if (progreso > 0.99f) progreso = 0.99f;
-            idxSalto = static_cast<int>(progreso * total);
-        }
+        // Progresión lineal continua desde impulso inicial (vy = -560) hasta aterrizaje (vy = +560)
+        float progreso = (vy + 560.0f) / 1120.0f;
+        if (progreso < 0.0f) progreso = 0.0f;
+        if (progreso > 0.999f) progreso = 0.999f;
+        int idxSalto = static_cast<int>(progreso * total);
 
         frameHeroe = framesSaltar[idxSalto % total];
     } else if (direccion != 0 && !framesCorrer.empty()) {

@@ -58,6 +58,7 @@ private:
     void construirEscenario();
     void cargarSprites();
     QPixmap limpiarFondoAjedrez(const QPixmap& original);
+    QPixmap limpiarVerdeChroma(const QPixmap& original);
     QPixmap recortarBordesTransparentes(const QPixmap& pix);
     void extraerSpritesPorBlob(const QPixmap& sheet, int yInicio, int yFin, int altoObjetivo, std::vector<QPixmap>& destino);
     void actualizarAnimaciones(int direccion);
