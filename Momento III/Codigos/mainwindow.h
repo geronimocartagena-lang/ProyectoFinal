@@ -4,6 +4,8 @@
 #include <QMainWindow>
 #include <QPushButton>
 #include <QLabel>
+#include <QMediaPlayer>
+#include <QAudioOutput>
 #include "VentanaNivel1.h"
 
 class MainWindow : public QMainWindow {
@@ -12,6 +14,8 @@ class MainWindow : public QMainWindow {
 private:
     VentanaNivel1* ventanaNivel1;
     QPushButton* btnIniciar;
+    QMediaPlayer* reproductorMenu;
+    QAudioOutput* salidaAudioMenu;
 
 public:
     explicit MainWindow(QWidget* parent = nullptr);

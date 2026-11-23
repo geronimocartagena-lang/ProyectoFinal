@@ -10,6 +10,8 @@
 #include <QResizeEvent>
 #include <QTimer>
 #include <QPixmap>
+#include <QMediaPlayer>
+#include <QAudioOutput>
 #include <vector>
 #include "ControladorNivel1.h"
 
@@ -30,6 +32,17 @@ private:
     QGraphicsTextItem* hudTexto;
     QGraphicsPixmapItem* itemBarraVida;
     int ultimaVidaRenderizada;
+
+    // Sistema de Audio
+    QMediaPlayer* musicaFondo;
+    QAudioOutput* salidaMusicaFondo;
+    QMediaPlayer* sfxLodo;
+    QAudioOutput* salidaSfxLodo;
+    QMediaPlayer* sfxDisparo;
+    QAudioOutput* salidaSfxDisparo;
+    QMediaPlayer* sfxGameOver;
+    QAudioOutput* salidaSfxGameOver;
+    size_t conteoBalasPrevio;
 
     QPixmap pixQuieto;
     std::vector<QPixmap> framesCorrer;
@@ -54,11 +67,12 @@ private:
     bool teclaIzquierda;
     bool teclaDerecha;
 
+    void inicializarAudio();
     void construirEscenario();
     void cargarSprites();
     QPixmap limpiarFondoAjedrez(const QPixmap& original);
     QPixmap limpiarVerdeChroma(const QPixmap& original);
-    QPixmap recortarBordesTransparentes(const QPixmap& pix);
+    QPixmap recortarBordesTransparentes(const QPixmap& pix, bool recortarAnchoExtra = true);
     void extraerSpritesPorBlob(const QPixmap& sheet, int yInicio, int yFin, int altoReferenciaMax, int altoObjetivo, std::vector<QPixmap>& destino);
     void actualizarAnimaciones(int direccion);
     void refrescarTextoHUD();

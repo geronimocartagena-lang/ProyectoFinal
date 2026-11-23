@@ -5,6 +5,7 @@
 #include <QPixmap>
 #include <QPalette>
 #include <QBrush>
+#include <QUrl>
 #include <QGraphicsDropShadowEffect>
 
 MainWindow::MainWindow(QWidget* parent)
@@ -13,10 +14,18 @@ MainWindow::MainWindow(QWidget* parent)
     setWindowTitle("Capitán América en la Guerra de los Mil Días");
     setMinimumSize(960, 540);
 
+    // Música del menú principal (Inicio.mp3)
+    reproductorMenu = new QMediaPlayer(this);
+    salidaAudioMenu = new QAudioOutput(this);
+    reproductorMenu->setAudioOutput(salidaAudioMenu);
+    salidaAudioMenu->setVolume(0.65f);
+    reproductorMenu->setSource(QUrl("qrc:/new/prefix1/EfectosSonido/Inicio.mp3"));
+    reproductorMenu->setLoops(QMediaPlayer::Infinite);
+    reproductorMenu->play();
+
     QWidget* central = new QWidget(this);
     setCentralWidget(central);
 
-    // Fondo temático usando FondoN1.jpg
     QPixmap fondo(":/new/prefix1/FondoN1.jpg");
     if (!fondo.isNull()) {
         QPalette paleta;
@@ -29,24 +38,31 @@ MainWindow::MainWindow(QWidget* parent)
 
     QVBoxLayout* layout = new QVBoxLayout(central);
     layout->setAlignment(Qt::AlignCenter);
-    layout->setSpacing(36);
 
-    // Contenedor oscuro semitransparente estilo cartel de campaña
     QWidget* panelTitulo = new QWidget(central);
+    panelTitulo->setObjectName("panelMenu");
     panelTitulo->setStyleSheet(
-        "background-color: rgba(15, 18, 24, 210);"
-        "border: 4px solid #e6c86e;"
-        "border-radius: 6px;"
-        "padding: 28px 42px;"
+        "QWidget#panelMenu {"
+        "   background-color: rgba(15, 18, 24, 215);"
+        "   border: 4px solid #e6c86e;"
+        "   border-radius: 6px;"
+        "}"
         );
 
     QVBoxLayout* panelLayout = new QVBoxLayout(panelTitulo);
+    panelLayout->setContentsMargins(46, 32, 46, 32);
     panelLayout->setAlignment(Qt::AlignCenter);
-    panelLayout->setSpacing(14);
+    panelLayout->setSpacing(16);
 
     QLabel* lblSubtitulo = new QLabel("MISIÓN HISTÓRICA • NIVEL 1", panelTitulo);
     lblSubtitulo->setAlignment(Qt::AlignCenter);
-    lblSubtitulo->setStyleSheet("color: #f1c40f; font-family: 'Courier New'; font-size: 16px; font-weight: bold; border: none; background: transparent;");
+    lblSubtitulo->setStyleSheet(
+        "color: #f1c40f;"
+        "font-family: 'Courier New';"
+        "font-size: 16px;"
+        "font-weight: bold;"
+        "background: transparent;"
+        );
 
     QLabel* lblTitulo = new QLabel("CAPITÁN AMÉRICA\nEN LA GUERRA DE LOS MIL DÍAS", panelTitulo);
     lblTitulo->setAlignment(Qt::AlignCenter);
@@ -56,7 +72,6 @@ MainWindow::MainWindow(QWidget* parent)
         "font-size: 34px;"
         "font-weight: bold;"
         "letter-spacing: 2px;"
-        "border: none;"
         "background: transparent;"
         );
 
@@ -66,16 +81,17 @@ MainWindow::MainWindow(QWidget* parent)
     sombraTexto->setColor(QColor(0, 0, 0, 230));
     lblTitulo->setGraphicsEffect(sombraTexto);
 
-    btnIniciar = new QPushButton("INICIARa", panelTitulo);
+    btnIniciar = new QPushButton("INICIAR", panelTitulo);
     btnIniciar->setCursor(Qt::PointingHandCursor);
-    btnIniciar->setFixedSize(240, 58);
+    btnIniciar->setFixedSize(250, 62);
     btnIniciar->setStyleSheet(
         "QPushButton {"
         "   background-color: #c0392b;"
-        "   color: #FFFFFF;"
+        "   color: #ffffff;"
         "   font-family: 'Courier New';"
-        "   font-size: 22px;"
+        "   font-size: 24px;"
         "   font-weight: bold;"
+        "   padding: 0px;"
         "   border: 3px solid #f5d76e;"
         "   border-radius: 4px;"
         "}"
@@ -105,6 +121,7 @@ MainWindow::~MainWindow() {
 }
 
 void MainWindow::iniciarJuego() {
+    reproductorMenu->stop();
     ventanaNivel1 = new VentanaNivel1();
     ventanaNivel1->setWindowTitle("Capitán América en la Guerra de los Mil Días - Nivel 1");
     ventanaNivel1->showMaximized();

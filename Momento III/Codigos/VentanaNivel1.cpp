@@ -6,6 +6,7 @@
 #include <QImage>
 #include <QPainter>
 #include <QTransform>
+#include <QUrl>
 #include <QDebug>
 #include <stdexcept>
 #include <algorithm>
@@ -14,6 +15,7 @@
 VentanaNivel1::VentanaNivel1(QWidget* parent)
     : QGraphicsView(parent),
     ultimaVidaRenderizada(-1),
+    conteoBalasPrevio(0),
     frameHeroeActual(0),
     frameGolpeActual(0),
     frameDefensaActual(0),
@@ -38,6 +40,7 @@ VentanaNivel1::VentanaNivel1(QWidget* parent)
 
     controlador = new ControladorNivel1(this);
 
+    inicializarAudio();
     construirEscenario();
     cargarSprites();
 
@@ -52,6 +55,38 @@ VentanaNivel1::VentanaNivel1(QWidget* parent)
 
 VentanaNivel1::~VentanaNivel1() {
     delete escena;
+}
+
+void VentanaNivel1::inicializarAudio() {
+    // 1. Música de fondo del Nivel 1
+    musicaFondo = new QMediaPlayer(this);
+    salidaMusicaFondo = new QAudioOutput(this);
+    musicaFondo->setAudioOutput(salidaMusicaFondo);
+    salidaMusicaFondo->setVolume(0.45f);
+    musicaFondo->setSource(QUrl("qrc:/new/prefix1/EfectosSonido/MusicaFondoN1.mp3"));
+    musicaFondo->setLoops(QMediaPlayer::Infinite);
+    musicaFondo->play();
+
+    // 2. Efecto al caminar en lodo/fango
+    sfxLodo = new QMediaPlayer(this);
+    salidaSfxLodo = new QAudioOutput(this);
+    sfxLodo->setAudioOutput(salidaSfxLodo);
+    salidaSfxLodo->setVolume(0.75f);
+    sfxLodo->setSource(QUrl("qrc:/new/prefix1/EfectosSonido/CaminoLodo.mp3"));
+
+    // 3. Efecto de disparos enemigos
+    sfxDisparo = new QMediaPlayer(this);
+    salidaSfxDisparo = new QAudioOutput(this);
+    sfxDisparo->setAudioOutput(salidaSfxDisparo);
+    salidaSfxDisparo->setVolume(0.65f);
+    sfxDisparo->setSource(QUrl("qrc:/new/prefix1/EfectosSonido/DisparosSoldados.mp3"));
+
+    // 4. Efecto de Game Over
+    sfxGameOver = new QMediaPlayer(this);
+    salidaSfxGameOver = new QAudioOutput(this);
+    sfxGameOver->setAudioOutput(salidaSfxGameOver);
+    salidaSfxGameOver->setVolume(0.85f);
+    sfxGameOver->setSource(QUrl("qrc:/new/prefix1/EfectosSonido/GameOver.mp3"));
 }
 
 void VentanaNivel1::resizeEvent(QResizeEvent* event) {
@@ -95,7 +130,7 @@ QPixmap VentanaNivel1::limpiarVerdeChroma(const QPixmap& original) {
     return QPixmap::fromImage(img);
 }
 
-QPixmap VentanaNivel1::recortarBordesTransparentes(const QPixmap& pix) {
+QPixmap VentanaNivel1::recortarBordesTransparentes(const QPixmap& pix, bool recortarAnchoExtra) {
     QImage img = pix.toImage().convertToFormat(QImage::Format_ARGB32);
     int w = img.width();
     int h = img.height();
@@ -121,7 +156,7 @@ QPixmap VentanaNivel1::recortarBordesTransparentes(const QPixmap& pix) {
 
     int anchoRecorte = (maxX - minX) + 1;
     int altoRecorte  = (maxY - minY) + 1;
-    if (anchoRecorte > altoRecorte * 2) {
+    if (recortarAnchoExtra && anchoRecorte > altoRecorte * 2) {
         minX = maxX - static_cast<int>(altoRecorte * 1.15);
         if (minX < 0) minX = 0;
         anchoRecorte = (maxX - minX) + 1;
@@ -289,7 +324,7 @@ void VentanaNivel1::construirEscenario() {
         escena->addRect(0, 477, 6500, 63, QPen(Qt::NoPen), QBrush(QColor(92, 64, 51)));
     }
 
-    // 3. Cargar textura de Obstaculo.png
+    // 3. Cargar textura completa de Obstaculo.png (sin recortar su ancho)
     QPixmap texObstaculo;
     bool tieneObstaculo = false;
     try {
@@ -297,7 +332,7 @@ void VentanaNivel1::construirEscenario() {
             throw std::runtime_error("No se pudo cargar :/new/prefix1/Obstaculo.png");
         }
         texObstaculo = limpiarFondoAjedrez(texObstaculo);
-        texObstaculo = recortarBordesTransparentes(texObstaculo);
+        texObstaculo = recortarBordesTransparentes(texObstaculo, false);
         tieneObstaculo = !texObstaculo.isNull();
     } catch (const std::exception& e) {
         qWarning() << e.what();
@@ -341,7 +376,7 @@ void VentanaNivel1::construirEscenario() {
             throw std::runtime_error("No se pudo cargar :/new/prefix1/Casa.png");
         }
         texCasa = limpiarFondoAjedrez(texCasa);
-        texCasa = recortarBordesTransparentes(texCasa);
+        texCasa = recortarBordesTransparentes(texCasa, false);
         if (!texCasa.isNull()) {
             QPixmap casaEscalada = texCasa.scaledToHeight(135, Qt::SmoothTransformation);
             for (const Civil* civil : controlador->getCiviles()) {
@@ -350,14 +385,14 @@ void VentanaNivel1::construirEscenario() {
                 double casaX = civil->getPosX() - (casaEscalada.width() * 0.35);
                 double casaY = baseSueloCivil - casaEscalada.height() + 4.0;
                 itemCasa->setPos(casaX, casaY);
-                itemCasa->setZValue(0.2); // Detrás de los campesinos (ZValue >= 1.0) y delante del fondo (-3)
+                itemCasa->setZValue(0.2);
             }
         }
     } catch (const std::exception& e) {
         qWarning() << e.what();
     }
 
-    // 6. Cartel de indicaciones de controles en el escenario (no en el HUD superior)
+    // 6. Cartel de indicaciones de controles en el escenario
     {
         const int cw = 310;
         const int ch = 122;
@@ -582,7 +617,6 @@ void VentanaNivel1::cargarSprites() {
         framesEnemigoDisparar.push_back(fallback);
     }
 
-    // Bala de alta visibilidad (36x14 px)
     pixBalaEnemiga = QPixmap(36, 14);
     pixBalaEnemiga.fill(Qt::transparent);
     {
@@ -634,7 +668,6 @@ void VentanaNivel1::actualizarAnimaciones(int direccion) {
     CapitanAmerica* heroe = controlador->getHeroe();
 
     if (heroe->isBloqueando() && !framesDefensa.empty()) {
-        // Animación lenta de cubrirse: avanza despacio hasta la postura final de guardia y la mantiene fija
         int ultimoFrame = static_cast<int>(framesDefensa.size()) - 1;
         if (contadorTicks % 14 == 0 && frameDefensaActual < ultimoFrame) {
             frameDefensaActual++;
@@ -783,12 +816,22 @@ void VentanaNivel1::actualizarFrame() {
     if (teclaIzquierda) dir -= 1;
     if (teclaDerecha) dir += 1;
 
-    controlador->getHeroe()->moverHorizontal(dir, friccion);
+    CapitanAmerica* heroe = controlador->getHeroe();
+
+    // Sonido CaminoLodo.mp3 cuando el héroe camina sobre fango
+    if (friccion > 0.0f && dir != 0 && heroe->isEnSuelo()) {
+        if (sfxLodo->playbackState() != QMediaPlayer::PlayingState) {
+            sfxLodo->play();
+        }
+    } else if (sfxLodo->playbackState() == QMediaPlayer::PlayingState) {
+        sfxLodo->stop();
+    }
+
+    heroe->moverHorizontal(dir, friccion);
     controlador->actualizarReglas(dt);
 
     actualizarAnimaciones(dir);
 
-    CapitanAmerica* heroe = controlador->getHeroe();
     double anchoHeroePix = itemHeroe->pixmap().width();
     double altoHeroePix  = itemHeroe->pixmap().height();
     double xCentradaHeroe = heroe->getPosX() + (70.0 - anchoHeroePix) * 0.5;
@@ -809,7 +852,14 @@ void VentanaNivel1::actualizarFrame() {
         itemsCiviles[i]->setPos(civiles[i]->getPosX(), yAlineadaCivil);
     }
 
+    // Reproducir DisparosSoldados.mp3 cuando se dispara una bala nueva
     const auto& balas = controlador->getBalasEnemigas();
+    if (balas.size() > conteoBalasPrevio) {
+        sfxDisparo->setPosition(0);
+        sfxDisparo->play();
+    }
+    conteoBalasPrevio = balas.size();
+
     for (size_t i = 0; i < poolBalasEnemigas.size(); ++i) {
         if (i < balas.size() && balas[i].activa) {
             poolBalasEnemigas[i]->setVisible(true);
@@ -847,12 +897,16 @@ void VentanaNivel1::refrescarTextoHUD() {
 
 void VentanaNivel1::manejarFinNivel(bool victoria) {
     gameLoopTimer->stop();
+    musicaFondo->stop();
+    sfxLodo->stop();
+
     if (victoria) {
         QMessageBox::information(this, "¡Pueblo a Salvo!",
                                  "Has evacuado a los 5 grupos de civiles.\n\n"
                                  "Cinemática: En el futuro, Donald Trump observa el mapa de Colombia y Panamá:\n"
                                  "«Que Colombia pelee entre ellos. Me quedaré con Panamá».");
     } else {
+        sfxGameOver->play();
         QMessageBox::warning(this, "Misión Fallida", "Has perdido toda tu salud o se agotó el tiempo.");
     }
 }
