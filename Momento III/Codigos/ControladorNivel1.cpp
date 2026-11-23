@@ -3,7 +3,7 @@
 
 ControladorNivel1::ControladorNivel1(QObject* parent)
     : QObject(parent),
-    tiempoRestanteSegundos(210),
+    tiempoRestanteSegundos(240),
     nivelActual(1),
     civilesEvacuados(0),
     juegoTerminado(false),
@@ -11,7 +11,7 @@ ControladorNivel1::ControladorNivel1(QObject* parent)
 
     heroe = new CapitanAmerica(100.0f, 370.0f);
 
-    // Plataformas elevadas (Suelo.png) y zonas de fango
+    // 13 Plataformas elevadas (Suelo.png) y 6 zonas de fango a lo largo de 8800 px
     mapaTerreno.push_back({QRectF(420.0f, 340.0f, 250.0f, 36.0f), false, false});   // Plat 1 (Y = 340)
     mapaTerreno.push_back({QRectF(860.0f, 455.0f, 270.0f, 18.0f), true, false});    // Fango 1
     mapaTerreno.push_back({QRectF(1260.0f, 320.0f, 280.0f, 36.0f), false, false});  // Plat 2 (Y = 320)
@@ -25,23 +25,32 @@ ControladorNivel1::ControladorNivel1(QObject* parent)
     mapaTerreno.push_back({QRectF(4720.0f, 455.0f, 300.0f, 18.0f), true, false});   // Fango 4
     mapaTerreno.push_back({QRectF(5180.0f, 330.0f, 280.0f, 36.0f), false, false});  // Plat 8 (Y = 330)
     mapaTerreno.push_back({QRectF(5620.0f, 250.0f, 270.0f, 36.0f), false, false});  // Plat 9 alta (Y = 250)
+    mapaTerreno.push_back({QRectF(6080.0f, 455.0f, 310.0f, 18.0f), true, false});   // Fango 5
+    mapaTerreno.push_back({QRectF(6540.0f, 325.0f, 290.0f, 36.0f), false, false});  // Plat 10 (Y = 325)
+    mapaTerreno.push_back({QRectF(6980.0f, 240.0f, 280.0f, 36.0f), false, false});  // Plat 11 alta (Y = 240)
+    mapaTerreno.push_back({QRectF(7420.0f, 455.0f, 300.0f, 18.0f), true, false});   // Fango 6
+    mapaTerreno.push_back({QRectF(7860.0f, 320.0f, 290.0f, 36.0f), false, false});  // Plat 12 (Y = 320)
+    mapaTerreno.push_back({QRectF(8050.0f, 230.0f, 240.0f, 36.0f), false, false});  // Plat 13 alta final (Y = 230)
 
-    // Obstáculos sólidos (Obstaculo.png) completos y más grandes (96 x 78 px, apoyados en Y = 465)
+    // 9 Obstáculos sólidos (Obstaculo.png, 96 x 78 px apoyados en Y = 465)
     mapaTerreno.push_back({QRectF(690.0f, 387.0f, 96.0f, 78.0f), false, true});     // Obstáculo 1
     mapaTerreno.push_back({QRectF(1560.0f, 387.0f, 96.0f, 78.0f), false, true});    // Obstáculo 2
     mapaTerreno.push_back({QRectF(2370.0f, 387.0f, 96.0f, 78.0f), false, true});    // Obstáculo 3
     mapaTerreno.push_back({QRectF(3220.0f, 387.0f, 96.0f, 78.0f), false, true});    // Obstáculo 4
     mapaTerreno.push_back({QRectF(4140.0f, 387.0f, 96.0f, 78.0f), false, true});    // Obstáculo 5
     mapaTerreno.push_back({QRectF(5060.0f, 387.0f, 96.0f, 78.0f), false, true});    // Obstáculo 6
+    mapaTerreno.push_back({QRectF(5950.0f, 387.0f, 96.0f, 78.0f), false, true});    // Obstáculo 7
+    mapaTerreno.push_back({QRectF(6850.0f, 387.0f, 96.0f, 78.0f), false, true});    // Obstáculo 8
+    mapaTerreno.push_back({QRectF(7740.0f, 387.0f, 96.0f, 78.0f), false, true});    // Obstáculo 9
 
-    // 5 Campesinos
+    // 5 Campesinos distribuidos a lo largo del mapa extendido
     listaCiviles.push_back(new Civil(510.0f, 340.0f - 95.0f));
-    listaCiviles.push_back(new Civil(1770.0f, 240.0f - 95.0f));
-    listaCiviles.push_back(new Civil(2820.0f, 465.0f - 95.0f));
+    listaCiviles.push_back(new Civil(2180.0f, 465.0f - 95.0f));
     listaCiviles.push_back(new Civil(4380.0f, 240.0f - 95.0f));
-    listaCiviles.push_back(new Civil(5720.0f, 250.0f - 95.0f));
+    listaCiviles.push_back(new Civil(6640.0f, 325.0f - 95.0f));
+    listaCiviles.push_back(new Civil(8120.0f, 230.0f - 95.0f));
 
-    // 10 Soldados enemigos
+    // 15 Soldados enemigos
     listaEnemigos.push_back(new Enemigo(805.0f, 370.0f, 65.0f));
     listaEnemigos.push_back(new Enemigo(1380.0f, 320.0f - 95.0f, 80.0f));
     listaEnemigos.push_back(new Enemigo(1980.0f, 370.0f, 120.0f));
@@ -51,9 +60,14 @@ ControladorNivel1::ControladorNivel1(QObject* parent)
     listaEnemigos.push_back(new Enemigo(3940.0f, 320.0f - 95.0f, 80.0f));
     listaEnemigos.push_back(new Enemigo(4620.0f, 370.0f, 120.0f));
     listaEnemigos.push_back(new Enemigo(5300.0f, 330.0f - 95.0f, 80.0f));
-    listaEnemigos.push_back(new Enemigo(5950.0f, 370.0f, 110.0f));
+    listaEnemigos.push_back(new Enemigo(5750.0f, 250.0f - 95.0f, 75.0f));
+    listaEnemigos.push_back(new Enemigo(6410.0f, 370.0f, 110.0f));
+    listaEnemigos.push_back(new Enemigo(7090.0f, 240.0f - 95.0f, 85.0f));
+    listaEnemigos.push_back(new Enemigo(7320.0f, 370.0f, 120.0f));
+    listaEnemigos.push_back(new Enemigo(7980.0f, 320.0f - 95.0f, 85.0f));
+    listaEnemigos.push_back(new Enemigo(8220.0f, 370.0f, 110.0f));
 
-    zonaEvacuacion = QRectF(6180.0f, 310.0f, 240.0f, 155.0f);
+    zonaEvacuacion = QRectF(8420.0f, 310.0f, 260.0f, 155.0f);
 
     timerReloj = new QTimer(this);
     connect(timerReloj, &QTimer::timeout, this, &ControladorNivel1::descontarSegundo);
@@ -190,7 +204,7 @@ void ControladorNivel1::actualizarReglas(float dt) {
     for (auto& bala : balasEnemigas) {
         if (!bala.activa) continue;
         bala.x += bala.vx * dt;
-        if (bala.x < 0.0f || bala.x > 6500.0f) {
+        if (bala.x < 0.0f || bala.x > 8800.0f) {
             bala.activa = false;
         }
     }

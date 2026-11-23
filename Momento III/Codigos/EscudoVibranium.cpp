@@ -2,7 +2,7 @@
 #include <cmath>
 
 EscudoVibranium::EscudoVibranium()
-    : posX(0.0f), posY(0.0f), velX(0.0f), velY(0.0f), radio(18.0f), activo(false), tiempoVuelo(0.0f) {}
+    : posX(0.0f), posY(0.0f), velX(0.0f), velY(0.0f), radio(18.0f), activo(false), tiempoVuelo(0.0f), rebotes(0) {}
 
 void EscudoVibranium::lanzar(float x, float y, float anguloGrados, float rapidez) {
     posX = x;
@@ -12,6 +12,7 @@ void EscudoVibranium::lanzar(float x, float y, float anguloGrados, float rapidez
     velY = -std::sin(rad) * rapidez * 0.45f;
     activo = true;
     tiempoVuelo = 0.0f;
+    rebotes = 0;
 }
 
 void EscudoVibranium::actualizarMovimiento(float dt) {
@@ -28,7 +29,7 @@ void EscudoVibranium::actualizarMovimiento(float dt) {
         rebotarVectorial(0.0f, -1.0f);
     }
 
-    if (tiempoVuelo >= 1.35f || posX < 0.0f || posX > 6500.0f) {
+    if (tiempoVuelo >= 1.15f || rebotes >= 3 || posX < 0.0f || posX > 8800.0f) {
         activo = false;
     }
 }
@@ -36,4 +37,5 @@ void EscudoVibranium::actualizarMovimiento(float dt) {
 void EscudoVibranium::rebotarVectorial(float normalX, float normalY) {
     if (normalX != 0.0f) velX = -velX * 0.85f;
     if (normalY != 0.0f) velY = -velY * 0.75f;
+    rebotes++;
 }
