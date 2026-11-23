@@ -7,13 +7,16 @@
 #include <QMediaPlayer>
 #include <QAudioOutput>
 #include "VentanaNivel1.h"
+#include "VentanaNivel2.h"
 
 class MainWindow : public QMainWindow {
     Q_OBJECT
 
 private:
     VentanaNivel1* ventanaNivel1;
+    VentanaNivel2* ventanaNivel2;
     QPushButton* btnIniciar;
+    QPushButton* btnNivel2Directo;
     QMediaPlayer* reproductorMenu;
     QAudioOutput* salidaAudioMenu;
 
@@ -23,6 +26,7 @@ public:
 
 private slots:
     void iniciarJuego();
+    void abrirNivel2();
     void volverAlMenu();
 };
 

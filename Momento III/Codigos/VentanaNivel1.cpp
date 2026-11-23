@@ -1035,17 +1035,41 @@ void VentanaNivel1::mostrarPantallaFinNivel(bool victoria) {
             "font-style: italic;"
             );
         layoutTarjeta->addWidget(lblCinematica);
+
+        QPushButton* btnNivel2 = new QPushButton("IR AL NIVEL 2: JEFE FINAL", tarjeta);
+        btnNivel2->setCursor(Qt::PointingHandCursor);
+        btnNivel2->setFixedSize(330, 56);
+        btnNivel2->setStyleSheet(
+            "QPushButton {"
+            "   background-color: #27ae60;"
+            "   color: #ffffff;"
+            "   font-family: 'Courier New';"
+            "   font-size: 18px;"
+            "   font-weight: bold;"
+            "   border: 3px solid #f5d76e;"
+            "   border-radius: 5px;"
+            "}"
+            "QPushButton:hover {"
+            "   background-color: #2ecc71;"
+            "   border: 3px solid #ffffff;"
+            "}"
+            );
+        layoutTarjeta->addSpacing(8);
+        layoutTarjeta->addWidget(btnNivel2, 0, Qt::AlignCenter);
+        connect(btnNivel2, &QPushButton::clicked, this, [this]() {
+            emit iniciarNivel2();
+        });
     }
 
     QPushButton* btnMenu = new QPushButton("VOLVER AL MENÚ", tarjeta);
     btnMenu->setCursor(Qt::PointingHandCursor);
-    btnMenu->setFixedSize(270, 56);
+    btnMenu->setFixedSize(270, 50);
     btnMenu->setStyleSheet(
         "QPushButton {"
         "   background-color: #c0392b;"
         "   color: #ffffff;"
         "   font-family: 'Courier New';"
-        "   font-size: 20px;"
+        "   font-size: 18px;"
         "   font-weight: bold;"
         "   border: 3px solid #f5d76e;"
         "   border-radius: 5px;"
@@ -1059,7 +1083,7 @@ void VentanaNivel1::mostrarPantallaFinNivel(bool victoria) {
         "}"
         );
 
-    layoutTarjeta->addSpacing(8);
+    layoutTarjeta->addSpacing(6);
     layoutTarjeta->addWidget(btnMenu, 0, Qt::AlignCenter);
     layoutFondo->addWidget(tarjeta);
 

@@ -19,5 +19,8 @@
         <file>EfectosSonido/CaminoLodo.mp3</file>
         <file>EfectosSonido/Saltar.mp3</file>
         <file>EfectosSonido/RecibeDaño.mp3</file>
+        <file>SueloN2.png</file>
+        <file>sprites_ Trump.png</file>
+        <file>FondoN2.png</file>
     </qresource>
 </RCC>

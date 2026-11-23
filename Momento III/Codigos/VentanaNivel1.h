@@ -93,6 +93,7 @@ public:
 
 signals:
     void regresarAlMenu();
+    void iniciarNivel2();
 
 protected:
     void keyPressEvent(QKeyEvent* event) override;

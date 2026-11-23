@@ -38,6 +38,12 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
         recursos.qrc
         Enemigo.cpp
         Enemigo.h
+        JefeTrump.h
+        JefeTrump.cpp
+        ControladorNivel2.cpp
+        ControladorNivel2.h
+        VentanaNivel2.cpp
+        VentanaNivel2.h
     )
 # Define target properties for Android with Qt 6 as:
 #    set_property(TARGET Codigos APPEND PROPERTY QT_ANDROID_PACKAGE_SOURCE_DIR

@@ -6,15 +6,15 @@
 #include <QPalette>
 #include <QBrush>
 #include <QUrl>
+#include <QTimer>
 #include <QGraphicsDropShadowEffect>
 
 MainWindow::MainWindow(QWidget* parent)
-    : QMainWindow(parent), ventanaNivel1(nullptr) {
+    : QMainWindow(parent), ventanaNivel1(nullptr), ventanaNivel2(nullptr) {
 
     setWindowTitle("Capitán América en la Guerra de los Mil Días");
     setMinimumSize(960, 540);
 
-    // Configurar sonido de inicio (se reproducirá únicamente al presionar INICIAR)
     reproductorMenu = new QMediaPlayer(this);
     salidaAudioMenu = new QAudioOutput(this);
     reproductorMenu->setAudioOutput(salidaAudioMenu);
@@ -51,9 +51,9 @@ MainWindow::MainWindow(QWidget* parent)
     QVBoxLayout* panelLayout = new QVBoxLayout(panelTitulo);
     panelLayout->setContentsMargins(46, 32, 46, 32);
     panelLayout->setAlignment(Qt::AlignCenter);
-    panelLayout->setSpacing(16);
+    panelLayout->setSpacing(14);
 
-    QLabel* lblSubtitulo = new QLabel("MISIÓN HISTÓRICA • NIVEL 1", panelTitulo);
+    QLabel* lblSubtitulo = new QLabel("MISIÓN HISTÓRICA • CAMPAÑA COMPLETA", panelTitulo);
     lblSubtitulo->setAlignment(Qt::AlignCenter);
     lblSubtitulo->setStyleSheet(
         "color: #f1c40f;"
@@ -80,17 +80,16 @@ MainWindow::MainWindow(QWidget* parent)
     sombraTexto->setColor(QColor(0, 0, 0, 230));
     lblTitulo->setGraphicsEffect(sombraTexto);
 
-    btnIniciar = new QPushButton("INICIAR", panelTitulo);
+    btnIniciar = new QPushButton("NIVEL 1: RESCATE", panelTitulo);
     btnIniciar->setCursor(Qt::PointingHandCursor);
-    btnIniciar->setFixedSize(250, 62);
+    btnIniciar->setFixedSize(310, 58);
     btnIniciar->setStyleSheet(
         "QPushButton {"
         "   background-color: #c0392b;"
         "   color: #ffffff;"
         "   font-family: 'Courier New';"
-        "   font-size: 24px;"
+        "   font-size: 20px;"
         "   font-weight: bold;"
-        "   padding: 0px;"
         "   border: 3px solid #f5d76e;"
         "   border-radius: 4px;"
         "}"
@@ -103,42 +102,115 @@ MainWindow::MainWindow(QWidget* parent)
         "}"
         );
 
+    btnNivel2Directo = new QPushButton("NIVEL 2: JEFE FINAL", panelTitulo);
+    btnNivel2Directo->setCursor(Qt::PointingHandCursor);
+    btnNivel2Directo->setFixedSize(310, 58);
+    btnNivel2Directo->setStyleSheet(
+        "QPushButton {"
+        "   background-color: #1f618d;"
+        "   color: #ffffff;"
+        "   font-family: 'Courier New';"
+        "   font-size: 20px;"
+        "   font-weight: bold;"
+        "   border: 3px solid #f5d76e;"
+        "   border-radius: 4px;"
+        "}"
+        "QPushButton:hover {"
+        "   background-color: #2980b9;"
+        "   border: 3px solid #ffffff;"
+        "}"
+        "QPushButton:pressed {"
+        "   background-color: #154360;"
+        "}"
+        );
+
     panelLayout->addWidget(lblSubtitulo);
     panelLayout->addWidget(lblTitulo);
-    panelLayout->addSpacing(12);
+    panelLayout->addSpacing(10);
     panelLayout->addWidget(btnIniciar, 0, Qt::AlignCenter);
+    panelLayout->addWidget(btnNivel2Directo, 0, Qt::AlignCenter);
 
     layout->addWidget(panelTitulo);
 
     connect(btnIniciar, &QPushButton::clicked, this, &MainWindow::iniciarJuego);
+    connect(btnNivel2Directo, &QPushButton::clicked, this, &MainWindow::abrirNivel2);
 }
 
 MainWindow::~MainWindow() {
-    if (ventanaNivel1) {
-        delete ventanaNivel1;
-    }
+    if (ventanaNivel1) delete ventanaNivel1;
+    if (ventanaNivel2) delete ventanaNivel2;
 }
 
 void MainWindow::iniciarJuego() {
     btnIniciar->setEnabled(false);
+    btnNivel2Directo->setEnabled(false);
     reproductorMenu->setPosition(0);
     reproductorMenu->play();
 
+    if (ventanaNivel1) {
+        ventanaNivel1->deleteLater();
+        ventanaNivel1 = nullptr;
+    }
+
     ventanaNivel1 = new VentanaNivel1();
-    ventanaNivel1->setWindowTitle("Capitán América en la Guerra de los Mil Días - Nivel 1");
+    ventanaNivel1->setAttribute(Qt::WA_DeleteOnClose, false);
+    ventanaNivel1->setWindowTitle("Capitán América - Nivel 1: Rescate en Colombia");
     connect(ventanaNivel1, &VentanaNivel1::regresarAlMenu, this, &MainWindow::volverAlMenu);
+    connect(ventanaNivel1, &VentanaNivel1::iniciarNivel2, this, &MainWindow::abrirNivel2);
 
     ventanaNivel1->showMaximized();
     this->hide();
 }
 
+void MainWindow::abrirNivel2() {
+    btnIniciar->setEnabled(false);
+    btnNivel2Directo->setEnabled(false);
+    reproductorMenu->setPosition(0);
+    reproductorMenu->play();
+
+    if (ventanaNivel1) {
+        ventanaNivel1->disconnect();
+        ventanaNivel1->hide();
+        VentanaNivel1* viejaN1 = ventanaNivel1;
+        ventanaNivel1 = nullptr;
+        QTimer::singleShot(0, viejaN1, &QObject::deleteLater);
+    }
+
+    if (ventanaNivel2) {
+        ventanaNivel2->disconnect();
+        ventanaNivel2->hide();
+        ventanaNivel2->deleteLater();
+        ventanaNivel2 = nullptr;
+    }
+
+    ventanaNivel2 = new VentanaNivel2();
+    ventanaNivel2->setAttribute(Qt::WA_DeleteOnClose, false);
+    ventanaNivel2->setWindowTitle("Capitán América - Nivel 2: Batalla Final en la Costa del Caribe");
+    connect(ventanaNivel2, &VentanaNivel2::regresarAlMenu, this, &MainWindow::volverAlMenu);
+
+    ventanaNivel2->showMaximized();
+    ventanaNivel2->raise();
+    ventanaNivel2->activateWindow();
+    this->hide();
+}
+
 void MainWindow::volverAlMenu() {
     if (ventanaNivel1) {
+        ventanaNivel1->disconnect();
         ventanaNivel1->hide();
-        ventanaNivel1->deleteLater();
+        VentanaNivel1* viejaN1 = ventanaNivel1;
         ventanaNivel1 = nullptr;
+        QTimer::singleShot(0, viejaN1, &QObject::deleteLater);
+    }
+    if (ventanaNivel2) {
+        ventanaNivel2->disconnect();
+        ventanaNivel2->hide();
+        VentanaNivel2* viejaN2 = ventanaNivel2;
+        ventanaNivel2 = nullptr;
+        QTimer::singleShot(0, viejaN2, &QObject::deleteLater);
     }
     btnIniciar->setEnabled(true);
+    btnNivel2Directo->setEnabled(true);
     this->show();
     this->raise();
     this->activateWindow();
