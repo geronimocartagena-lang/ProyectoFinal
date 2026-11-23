@@ -2,7 +2,10 @@
 #include <QBrush>
 #include <QPen>
 #include <QFont>
-#include <QMessageBox>
+#include <QVBoxLayout>
+#include <QLabel>
+#include <QPushButton>
+#include <QGraphicsDropShadowEffect>
 #include <QImage>
 #include <QPainter>
 #include <QTransform>
@@ -15,6 +18,8 @@
 VentanaNivel1::VentanaNivel1(QWidget* parent)
     : QGraphicsView(parent),
     ultimaVidaRenderizada(-1),
+    vidaPreviaHeroe(-1),
+    overlayFinNivel(nullptr),
     conteoBalasPrevio(0),
     frameHeroeActual(0),
     frameGolpeActual(0),
@@ -34,11 +39,12 @@ VentanaNivel1::VentanaNivel1(QWidget* parent)
     setViewportUpdateMode(QGraphicsView::FullViewportUpdate);
     setOptimizationFlag(QGraphicsView::DontSavePainterState, true);
 
-    escena = new QGraphicsScene(0, 0, 6500, 540, this);
+    escena = new QGraphicsScene(0, -100, 8800, 640, this);
     escena->setItemIndexMethod(QGraphicsScene::NoIndex);
     setScene(escena);
 
     controlador = new ControladorNivel1(this);
+    vidaPreviaHeroe = controlador->getHeroe()->getVidaActual();
 
     inicializarAudio();
     construirEscenario();
@@ -57,8 +63,16 @@ VentanaNivel1::~VentanaNivel1() {
     delete escena;
 }
 
+void VentanaNivel1::closeEvent(QCloseEvent* event) {
+    gameLoopTimer->stop();
+    musicaFondo->stop();
+    sfxLodo->stop();
+    emit regresarAlMenu();
+    event->accept();
+}
+
 void VentanaNivel1::inicializarAudio() {
-    // 1. Música de fondo del Nivel 1 (volumen reducido)
+    // 1. Música de fondo del Nivel 1
     musicaFondo = new QMediaPlayer(this);
     salidaMusicaFondo = new QAudioOutput(this);
     musicaFondo->setAudioOutput(salidaMusicaFondo);
@@ -67,7 +81,7 @@ void VentanaNivel1::inicializarAudio() {
     musicaFondo->setLoops(QMediaPlayer::Infinite);
     musicaFondo->play();
 
-    // 2. Efecto al caminar en lodo/fango (volumen aumentado al máximo)
+    // 2. Efecto al caminar en lodo/fango
     sfxLodo = new QMediaPlayer(this);
     salidaSfxLodo = new QAudioOutput(this);
     sfxLodo->setAudioOutput(salidaSfxLodo);
@@ -88,10 +102,27 @@ void VentanaNivel1::inicializarAudio() {
     sfxGameOver->setAudioOutput(salidaSfxGameOver);
     salidaSfxGameOver->setVolume(0.85f);
     sfxGameOver->setSource(QUrl("qrc:/new/prefix1/EfectosSonido/GameOver.mp3"));
+
+    // 5. Efecto al saltar (Saltar.mp3)
+    sfxSaltar = new QMediaPlayer(this);
+    salidaSfxSaltar = new QAudioOutput(this);
+    sfxSaltar->setAudioOutput(salidaSfxSaltar);
+    salidaSfxSaltar->setVolume(0.80f);
+    sfxSaltar->setSource(QUrl("qrc:/new/prefix1/EfectosSonido/Saltar.mp3"));
+
+    // 6. Efecto al recibir daño por disparos (RecibeDaño.mp3)
+    sfxRecibeDano = new QMediaPlayer(this);
+    salidaSfxRecibeDano = new QAudioOutput(this);
+    sfxRecibeDano->setAudioOutput(salidaSfxRecibeDano);
+    salidaSfxRecibeDano->setVolume(0.90f);
+    sfxRecibeDano->setSource(QUrl("qrc:/new/prefix1/EfectosSonido/RecibeDaño.mp3"));
 }
 
 void VentanaNivel1::resizeEvent(QResizeEvent* event) {
     QGraphicsView::resizeEvent(event);
+    if (overlayFinNivel) {
+        overlayFinNivel->setGeometry(viewport()->rect());
+    }
     if (viewport()->height() <= 0 || viewport()->width() <= 0) return;
 
     double altoVirtual = 700.0;
@@ -280,16 +311,17 @@ void VentanaNivel1::actualizarBarraVidaPixelArt(int vidaActual, int vidaMax) {
 }
 
 void VentanaNivel1::construirEscenario() {
-    // 1. Fondo del Nivel 1 en 3 tramos para cubrir 6500 px
+    // 1. Fondo del Nivel 1 cubriendo todo el alto superior (Y = -100 a 540) y todo el largo (8800 px)
+    escena->setBackgroundBrush(QBrush(QColor(34, 41, 56)));
     QPixmap fondoN1;
     try {
         if (!fondoN1.load(":/new/prefix1/FondoN1.jpg")) {
             throw std::runtime_error("No se pudo cargar FondoN1.jpg");
         }
-        QPixmap tramoFondo = fondoN1.scaled(2200, 540, Qt::IgnoreAspectRatio, Qt::SmoothTransformation);
-        for (int x = 0; x < 6600; x += 2200) {
+        QPixmap tramoFondo = fondoN1.scaled(2250, 640, Qt::IgnoreAspectRatio, Qt::SmoothTransformation);
+        for (int x = 0; x < 9000; x += 2250) {
             QGraphicsPixmapItem* bgItem = escena->addPixmap(tramoFondo);
-            bgItem->setPos(x, 0);
+            bgItem->setPos(x, -100);
             bgItem->setZValue(-3);
         }
     } catch (const std::exception& e) {
@@ -297,7 +329,7 @@ void VentanaNivel1::construirEscenario() {
         escena->setBackgroundBrush(QBrush(QColor(135, 175, 205)));
     }
 
-    // 2. Suelo continuo con :/new/prefix1/Suelo.png hasta 6500 px
+    // 2. Suelo continuo con :/new/prefix1/Suelo.png hasta 8800 px
     QPixmap texSuelo;
     bool tieneSuelo = false;
     try {
@@ -315,14 +347,14 @@ void VentanaNivel1::construirEscenario() {
         int anchoTile = 90;
         int altoTile = 75;
         QPixmap tileSuelo = texSuelo.scaled(anchoTile, altoTile, Qt::IgnoreAspectRatio, Qt::SmoothTransformation);
-        for (int x = 0; x < 6500; x += (anchoTile - 2)) {
+        for (int x = 0; x < 8800; x += (anchoTile - 2)) {
             QGraphicsPixmapItem* sueloItem = escena->addPixmap(tileSuelo);
             sueloItem->setPos(x, 465);
             sueloItem->setZValue(0);
         }
     } else {
-        escena->addRect(0, 465, 6500, 12, QPen(Qt::NoPen), QBrush(QColor(56, 142, 60)));
-        escena->addRect(0, 477, 6500, 63, QPen(Qt::NoPen), QBrush(QColor(92, 64, 51)));
+        escena->addRect(0, 465, 8800, 12, QPen(Qt::NoPen), QBrush(QColor(56, 142, 60)));
+        escena->addRect(0, 477, 8800, 63, QPen(Qt::NoPen), QBrush(QColor(92, 64, 51)));
     }
 
     // 3. Cargar textura completa de Obstaculo.png (sin recortar su ancho)
@@ -437,10 +469,10 @@ void VentanaNivel1::construirEscenario() {
     QGraphicsTextItem* txtZona = escena->addText("ZONA SEGURA");
     txtZona->setDefaultTextColor(Qt::white);
     txtZona->setFont(QFont("Arial", 13, QFont::Bold));
-    txtZona->setPos(zona.x() + 45, zona.y() - 28);
+    txtZona->setPos(zona.x() + 55, zona.y() - 28);
 
     // 8. HUD superior y Barra de Vida Pixel Art
-    hudTexto = escena->addText("Tiempo: 03:30 | Rescatados: 0/5 | Estado: Normal");
+    hudTexto = escena->addText("Tiempo: 04:00 | Rescatados: 0/5 | Estado: Normal");
     hudTexto->setDefaultTextColor(Qt::white);
     hudTexto->setFont(QFont("Arial", 16, QFont::Bold));
     hudTexto->setZValue(10);
@@ -654,7 +686,7 @@ void VentanaNivel1::cargarSprites() {
         itemsEnemigos.push_back(itemEnem);
     }
 
-    for (int i = 0; i < 40; ++i) {
+    for (int i = 0; i < 60; ++i) {
         QGraphicsPixmapItem* bItem = escena->addPixmap(pixBalaEnemiga);
         bItem->setVisible(false);
         bItem->setZValue(6);
@@ -731,7 +763,7 @@ void VentanaNivel1::actualizarAnimaciones(int direccion) {
                     ? (frameCivilActual % framesCampesinos[tipo].size())
                     : 0;
                     QPixmap pixC = framesCampesinos[tipo][f];
-                    if (civiles[i]->isRescatado() && heroe->getPosX() < civiles[i]->getPosX() && heroe->getPosX() < 5950.0f) {
+                    if (civiles[i]->isRescatado() && heroe->getPosX() < civiles[i]->getPosX() && heroe->getPosX() < 8180.0f) {
                         pixC = pixC.transformed(QTransform().scale(-1, 1));
                     }
                     itemsCiviles[i]->setPixmap(pixC);
@@ -762,7 +794,7 @@ void VentanaNivel1::actualizarAnimaciones(int direccion) {
 }
 
 void VentanaNivel1::keyPressEvent(QKeyEvent* event) {
-    if (event->isAutoRepeat()) return;
+    if (event->isAutoRepeat() || overlayFinNivel != nullptr) return;
 
     switch (event->key()) {
     case Qt::Key_A:
@@ -777,6 +809,10 @@ void VentanaNivel1::keyPressEvent(QKeyEvent* event) {
         break;
     case Qt::Key_W:
     case Qt::Key_Space:
+        if (controlador->getHeroe()->isEnSuelo()) {
+            sfxSaltar->setPosition(0);
+            sfxSaltar->play();
+        }
         controlador->getHeroe()->saltar();
         break;
     case Qt::Key_H:
@@ -831,6 +867,14 @@ void VentanaNivel1::actualizarFrame() {
     heroe->moverHorizontal(dir, friccion);
     controlador->actualizarReglas(dt);
 
+    // Detectar si el Capitán América recibió daño por disparo/ataque y reproducir RecibeDaño.mp3
+    int vidaActual = heroe->getVidaActual();
+    if (vidaPreviaHeroe != -1 && vidaActual < vidaPreviaHeroe) {
+        sfxRecibeDano->setPosition(0);
+        sfxRecibeDano->play();
+    }
+    vidaPreviaHeroe = vidaActual;
+
     actualizarAnimaciones(dir);
 
     double anchoHeroePix = itemHeroe->pixmap().width();
@@ -875,7 +919,7 @@ void VentanaNivel1::actualizarFrame() {
         }
     }
 
-    centerOn(heroe->getPosX() + 260.0f, 290.0f);
+    centerOn(heroe->getPosX() + 260.0f, 250.0f);
 
     refrescarTextoHUD();
     hudTexto->setPos(mapToScene(25, 16));
@@ -896,18 +940,147 @@ void VentanaNivel1::refrescarTextoHUD() {
     hudTexto->setPlainText(texto);
 }
 
+void VentanaNivel1::mostrarPantallaFinNivel(bool victoria) {
+    if (overlayFinNivel) return;
+
+    overlayFinNivel = new QWidget(viewport());
+    overlayFinNivel->setGeometry(viewport()->rect());
+    overlayFinNivel->setStyleSheet("background-color: rgba(8, 10, 15, 195);");
+
+    QVBoxLayout* layoutFondo = new QVBoxLayout(overlayFinNivel);
+    layoutFondo->setAlignment(Qt::AlignCenter);
+
+    QWidget* tarjeta = new QWidget(overlayFinNivel);
+    tarjeta->setObjectName("tarjetaFin");
+    tarjeta->setFixedWidth(680);
+
+    QString colorBorde = victoria ? "#f1c40f" : "#e74c3c";
+    tarjeta->setStyleSheet(
+        QString("QWidget#tarjetaFin {"
+                "   background-color: rgba(18, 22, 32, 245);"
+                "   border: 4px solid %1;"
+                "   border-radius: 8px;"
+                "}").arg(colorBorde)
+        );
+
+    QVBoxLayout* layoutTarjeta = new QVBoxLayout(tarjeta);
+    layoutTarjeta->setContentsMargins(38, 30, 38, 30);
+    layoutTarjeta->setSpacing(14);
+    layoutTarjeta->setAlignment(Qt::AlignCenter);
+
+    QLabel* lblBadge = new QLabel(victoria ? "★ NIVEL 1 COMPLETADO ★" : "✖ FIN DE LA PARTIDA ✖", tarjeta);
+    lblBadge->setAlignment(Qt::AlignCenter);
+    lblBadge->setStyleSheet(
+        QString("color: %1;"
+                "font-family: 'Courier New';"
+                "font-size: 16px;"
+                "font-weight: bold;"
+                "letter-spacing: 2px;"
+                "background: transparent;").arg(victoria ? "#2ecc71" : "#ff7675")
+        );
+
+    QLabel* lblTitulo = new QLabel(victoria ? "¡LO LOGRASTE!\n¡PUEBLO A SALVO!" : "MISIÓN FALLIDA", tarjeta);
+    lblTitulo->setAlignment(Qt::AlignCenter);
+    lblTitulo->setStyleSheet(
+        QString("color: %1;"
+                "font-family: 'Courier New';"
+                "font-size: 36px;"
+                "font-weight: bold;"
+                "background: transparent;").arg(victoria ? "#f1c40f" : "#e74c3c")
+        );
+
+    QGraphicsDropShadowEffect* sombra = new QGraphicsDropShadowEffect(lblTitulo);
+    sombra->setBlurRadius(6);
+    sombra->setOffset(3, 3);
+    sombra->setColor(QColor(0, 0, 0, 230));
+    lblTitulo->setGraphicsEffect(sombra);
+
+    QLabel* lblResumen = new QLabel(
+        victoria
+            ? QString("Has evacuado con éxito a los %1/5 grupos de civiles.").arg(controlador->getCivilesEvacuados())
+            : "Has perdido toda tu salud o se agotó el tiempo de rescate.",
+        tarjeta
+        );
+    lblResumen->setAlignment(Qt::AlignCenter);
+    lblResumen->setWordWrap(true);
+    lblResumen->setStyleSheet(
+        "color: #ecf0f1;"
+        "font-family: 'Courier New';"
+        "font-size: 16px;"
+        "font-weight: bold;"
+        "background: transparent;"
+        );
+
+    layoutTarjeta->addWidget(lblBadge);
+    layoutTarjeta->addWidget(lblTitulo);
+    layoutTarjeta->addWidget(lblResumen);
+
+    if (victoria) {
+        QLabel* lblCinematica = new QLabel(
+            "CINEMÁTICA FINAL:\n"
+            "En el futuro, Donald Trump observa el mapa de Colombia y Panamá:\n"
+            "«Que Colombia pelee entre ellos. Me quedaré con Panamá».",
+            tarjeta
+            );
+        lblCinematica->setAlignment(Qt::AlignCenter);
+        lblCinematica->setWordWrap(true);
+        lblCinematica->setStyleSheet(
+            "color: #ffeaa7;"
+            "background-color: rgba(10, 12, 18, 200);"
+            "border: 2px solid #b7950b;"
+            "border-radius: 5px;"
+            "padding: 14px;"
+            "font-family: 'Courier New';"
+            "font-size: 14px;"
+            "font-style: italic;"
+            );
+        layoutTarjeta->addWidget(lblCinematica);
+    }
+
+    QPushButton* btnMenu = new QPushButton("VOLVER AL MENÚ", tarjeta);
+    btnMenu->setCursor(Qt::PointingHandCursor);
+    btnMenu->setFixedSize(270, 56);
+    btnMenu->setStyleSheet(
+        "QPushButton {"
+        "   background-color: #c0392b;"
+        "   color: #ffffff;"
+        "   font-family: 'Courier New';"
+        "   font-size: 20px;"
+        "   font-weight: bold;"
+        "   border: 3px solid #f5d76e;"
+        "   border-radius: 5px;"
+        "}"
+        "QPushButton:hover {"
+        "   background-color: #e74c3c;"
+        "   border: 3px solid #ffffff;"
+        "}"
+        "QPushButton:pressed {"
+        "   background-color: #922b21;"
+        "}"
+        );
+
+    layoutTarjeta->addSpacing(8);
+    layoutTarjeta->addWidget(btnMenu, 0, Qt::AlignCenter);
+    layoutFondo->addWidget(tarjeta);
+
+    connect(btnMenu, &QPushButton::clicked, this, [this]() {
+        sfxGameOver->stop();
+        emit regresarAlMenu();
+    });
+
+    overlayFinNivel->show();
+    overlayFinNivel->raise();
+}
+
 void VentanaNivel1::manejarFinNivel(bool victoria) {
     gameLoopTimer->stop();
     musicaFondo->stop();
     sfxLodo->stop();
+    teclaIzquierda = false;
+    teclaDerecha = false;
 
-    if (victoria) {
-        QMessageBox::information(this, "¡Pueblo a Salvo!",
-                                 "Has evacuado a los 5 grupos de civiles.\n\n"
-                                 "Cinemática: En el futuro, Donald Trump observa el mapa de Colombia y Panamá:\n"
-                                 "«Que Colombia pelee entre ellos. Me quedaré con Panamá».");
-    } else {
+    if (!victoria) {
         sfxGameOver->play();
-        QMessageBox::warning(this, "Misión Fallida", "Has perdido toda tu salud o se agotó el tiempo.");
     }
+    mostrarPantallaFinNivel(victoria);
 }

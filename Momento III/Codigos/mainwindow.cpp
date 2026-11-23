@@ -126,6 +126,20 @@ void MainWindow::iniciarJuego() {
 
     ventanaNivel1 = new VentanaNivel1();
     ventanaNivel1->setWindowTitle("Capitán América en la Guerra de los Mil Días - Nivel 1");
+    connect(ventanaNivel1, &VentanaNivel1::regresarAlMenu, this, &MainWindow::volverAlMenu);
+
     ventanaNivel1->showMaximized();
     this->hide();
+}
+
+void MainWindow::volverAlMenu() {
+    if (ventanaNivel1) {
+        ventanaNivel1->hide();
+        ventanaNivel1->deleteLater();
+        ventanaNivel1 = nullptr;
+    }
+    btnIniciar->setEnabled(true);
+    this->show();
+    this->raise();
+    this->activateWindow();
 }

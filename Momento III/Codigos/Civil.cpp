@@ -22,9 +22,9 @@ void Civil::seguirHeroe(float heroeX, float dt) {
         if (posY > sueloY) posY = sueloY;
     }
 
-    // Si el héroe está cerca de la Zona Segura (X >= 5950), todos los campesinos corren directo adentro
-    float objetivoX = (heroeX >= 5950.0f)
-                          ? 6280.0f
+    // Si el héroe está cerca de la Zona Segura (X >= 8180), todos los campesinos corren directo adentro
+    float objetivoX = (heroeX >= 8180.0f)
+                          ? 8520.0f
                           : (heroeX - (65.0f + indiceFila * 48.0f));
 
     float diff = objetivoX - posX;

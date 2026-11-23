@@ -8,8 +8,10 @@
 #include <QGraphicsTextItem>
 #include <QKeyEvent>
 #include <QResizeEvent>
+#include <QCloseEvent>
 #include <QTimer>
 #include <QPixmap>
+#include <QWidget>
 #include <QMediaPlayer>
 #include <QAudioOutput>
 #include <vector>
@@ -32,6 +34,8 @@ private:
     QGraphicsTextItem* hudTexto;
     QGraphicsPixmapItem* itemBarraVida;
     int ultimaVidaRenderizada;
+    int vidaPreviaHeroe;
+    QWidget* overlayFinNivel;
 
     // Sistema de Audio
     QMediaPlayer* musicaFondo;
@@ -42,6 +46,10 @@ private:
     QAudioOutput* salidaSfxDisparo;
     QMediaPlayer* sfxGameOver;
     QAudioOutput* salidaSfxGameOver;
+    QMediaPlayer* sfxSaltar;
+    QAudioOutput* salidaSfxSaltar;
+    QMediaPlayer* sfxRecibeDano;
+    QAudioOutput* salidaSfxRecibeDano;
     size_t conteoBalasPrevio;
 
     QPixmap pixQuieto;
@@ -77,15 +85,20 @@ private:
     void actualizarAnimaciones(int direccion);
     void refrescarTextoHUD();
     void actualizarBarraVidaPixelArt(int vidaActual, int vidaMax);
+    void mostrarPantallaFinNivel(bool victoria);
 
 public:
     explicit VentanaNivel1(QWidget* parent = nullptr);
     ~VentanaNivel1() override;
 
+signals:
+    void regresarAlMenu();
+
 protected:
     void keyPressEvent(QKeyEvent* event) override;
     void keyReleaseEvent(QKeyEvent* event) override;
     void resizeEvent(QResizeEvent* event) override;
+    void closeEvent(QCloseEvent* event) override;
 
 private slots:
     void actualizarFrame();

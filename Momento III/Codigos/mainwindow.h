@@ -23,6 +23,7 @@ public:
 
 private slots:
     void iniciarJuego();
+    void volverAlMenu();
 };
 
 #endif // MAINWINDOW_H

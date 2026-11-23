@@ -12,6 +12,7 @@ private:
     float radio;
     bool activo;
     float tiempoVuelo;
+    int rebotes;
 
 public:
     EscudoVibranium();

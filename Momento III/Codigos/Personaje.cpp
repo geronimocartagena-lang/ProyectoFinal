@@ -16,7 +16,7 @@ void Personaje::actualizarFisica(float dt) {
 
     posX += velX * dt;
     if (posX < 0.0f) posX = 0.0f;
-    if (posX > 6420.0f) posX = 6420.0f;
+    if (posX > 8720.0f) posX = 8720.0f;
 
     velY += gravedad * dt;
     posY += velY * dt;
