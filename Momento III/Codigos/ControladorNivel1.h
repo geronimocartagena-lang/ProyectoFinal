@@ -12,6 +12,7 @@
 struct Obstaculo {
     QRectF area;
     bool esFango;
+    bool esBloqueSalto; // true = Obstaculo.png sólido que bloquea el paso y debe saltarse
 };
 
 class ControladorNivel1 : public QObject {

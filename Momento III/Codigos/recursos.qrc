@@ -10,5 +10,7 @@
         <file>Sprite_Enemigo.png</file>
         <file>Lucha_cuerpoACuerpo.png</file>
         <file>DefensaC.png</file>
+        <file>Obstaculo.png</file>
+        <file>Casa.png</file>
     </qresource>
 </RCC>

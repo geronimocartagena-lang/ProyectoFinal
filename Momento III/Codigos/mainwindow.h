@@ -2,22 +2,23 @@
 #define MAINWINDOW_H
 
 #include <QMainWindow>
+#include <QPushButton>
+#include <QLabel>
+#include "VentanaNivel1.h"
 
-QT_BEGIN_NAMESPACE
-namespace Ui {
-class MainWindow;
-}
-QT_END_NAMESPACE
-
-class MainWindow : public QMainWindow
-{
+class MainWindow : public QMainWindow {
     Q_OBJECT
 
+private:
+    VentanaNivel1* ventanaNivel1;
+    QPushButton* btnIniciar;
+
 public:
-    explicit MainWindow(QWidget *parent = nullptr);
+    explicit MainWindow(QWidget* parent = nullptr);
     ~MainWindow() override;
 
-private:
-    Ui::MainWindow *ui;
+private slots:
+    void iniciarJuego();
 };
+
 #endif // MAINWINDOW_H

@@ -184,25 +184,21 @@ void VentanaNivel1::actualizarBarraVidaPixelArt(int vidaActual, int vidaMax) {
     QPainter p(&pix);
     p.setRenderHint(QPainter::Antialiasing, false);
 
-    // 1. Contorno exterior pixel art escalonado (esquinas recortadas estilo 16-bit)
     p.fillRect(4, 0, w - 8, h, QColor(15, 15, 20));
     p.fillRect(0, 4, w, h - 8, QColor(15, 15, 20));
     p.fillRect(2, 2, w - 4, h - 4, QColor(15, 15, 20));
 
-    // 2. Borde metálico claro / dorado pixelado
     p.fillRect(4, 2, w - 8, 2, QColor(235, 215, 140));
     p.fillRect(4, h - 4, w - 8, 2, QColor(150, 125, 65));
     p.fillRect(2, 4, 2, h - 8, QColor(235, 215, 140));
     p.fillRect(w - 4, 4, 2, h - 8, QColor(150, 125, 65));
 
-    // 3. Fondo interior oscuro de la barra
     int innerX = 6;
     int innerY = 6;
     int innerW = w - 12;
     int innerH = h - 12;
     p.fillRect(innerX, innerY, innerW, innerH, QColor(55, 18, 22));
 
-    // 4. Relleno pixel art por bloques según salud
     float pct = (vidaMax > 0) ? std::clamp(static_cast<float>(vidaActual) / static_cast<float>(vidaMax), 0.0f, 1.0f) : 0.0f;
     int fillW = static_cast<int>(std::round((innerW * pct) / 2.0)) * 2;
 
@@ -223,20 +219,16 @@ void VentanaNivel1::actualizarBarraVidaPixelArt(int vidaActual, int vidaMax) {
         }
 
         p.fillRect(innerX, innerY, fillW, innerH, colorBase);
-        // Franja superior pixelada de brillo
         p.fillRect(innerX, innerY, fillW, 3, colorBrillo);
-        // Franja inferior pixelada de sombra
         p.fillRect(innerX, innerY + innerH - 3, fillW, 3, colorSombra);
     }
 
-    // 5. Divisiones verticales tipo celdas de energía (10 segmentos)
     int segmentos = 10;
     for (int i = 1; i < segmentos; ++i) {
         int sx = innerX + (innerW * i) / segmentos;
         p.fillRect(sx, innerY, 2, innerH, QColor(15, 15, 20, 190));
     }
 
-    // 6. Texto pixelado con sombra dura
     QFont fontPixel("Courier New", 10, QFont::Bold);
     fontPixel.setStyleStrategy(QFont::NoAntialias);
     p.setFont(fontPixel);
@@ -297,10 +289,35 @@ void VentanaNivel1::construirEscenario() {
         escena->addRect(0, 477, 6500, 63, QPen(Qt::NoPen), QBrush(QColor(92, 64, 51)));
     }
 
-    // 3. Plataformas flotantes (Suelo.png) y zonas de fango
+    // 3. Cargar textura de Obstaculo.png
+    QPixmap texObstaculo;
+    bool tieneObstaculo = false;
+    try {
+        if (!texObstaculo.load(":/new/prefix1/Obstaculo.png")) {
+            throw std::runtime_error("No se pudo cargar :/new/prefix1/Obstaculo.png");
+        }
+        texObstaculo = limpiarFondoAjedrez(texObstaculo);
+        texObstaculo = recortarBordesTransparentes(texObstaculo);
+        tieneObstaculo = !texObstaculo.isNull();
+    } catch (const std::exception& e) {
+        qWarning() << e.what();
+    }
+
+    // 4. Plataformas flotantes (Suelo.png), zonas de fango y obstáculos sólidos (Obstaculo.png)
     for (const auto& obs : controlador->getMapaTerreno()) {
         if (obs.esFango) {
             escena->addRect(obs.area, QPen(Qt::NoPen), QBrush(QColor(65, 42, 20, 220)));
+        } else if (obs.esBloqueSalto) {
+            if (tieneObstaculo) {
+                QPixmap pixObs = texObstaculo.scaled(static_cast<int>(obs.area.width()),
+                                                     static_cast<int>(obs.area.height()),
+                                                     Qt::IgnoreAspectRatio, Qt::SmoothTransformation);
+                QGraphicsPixmapItem* itemObs = escena->addPixmap(pixObs);
+                itemObs->setPos(obs.area.x(), obs.area.y());
+                itemObs->setZValue(1);
+            } else {
+                escena->addRect(obs.area, QPen(Qt::black, 2), QBrush(QColor(139, 90, 43)));
+            }
         } else {
             if (tieneSuelo) {
                 int tileW = 55;
@@ -317,7 +334,30 @@ void VentanaNivel1::construirEscenario() {
         }
     }
 
-    // 4. Cartel de indicaciones de controles en el escenario (no en el HUD superior)
+    // 5. Casa.png detrás de la posición inicial de cada campesino
+    QPixmap texCasa;
+    try {
+        if (!texCasa.load(":/new/prefix1/Casa.png")) {
+            throw std::runtime_error("No se pudo cargar :/new/prefix1/Casa.png");
+        }
+        texCasa = limpiarFondoAjedrez(texCasa);
+        texCasa = recortarBordesTransparentes(texCasa);
+        if (!texCasa.isNull()) {
+            QPixmap casaEscalada = texCasa.scaledToHeight(135, Qt::SmoothTransformation);
+            for (const Civil* civil : controlador->getCiviles()) {
+                QGraphicsPixmapItem* itemCasa = escena->addPixmap(casaEscalada);
+                double baseSueloCivil = civil->getPosY() + 95.0;
+                double casaX = civil->getPosX() - (casaEscalada.width() * 0.35);
+                double casaY = baseSueloCivil - casaEscalada.height() + 4.0;
+                itemCasa->setPos(casaX, casaY);
+                itemCasa->setZValue(0.2); // Detrás de los campesinos (ZValue >= 1.0) y delante del fondo (-3)
+            }
+        }
+    } catch (const std::exception& e) {
+        qWarning() << e.what();
+    }
+
+    // 6. Cartel de indicaciones de controles en el escenario (no en el HUD superior)
     {
         const int cw = 310;
         const int ch = 122;
@@ -327,7 +367,6 @@ void VentanaNivel1::construirEscenario() {
         QPainter p(&cartelPix);
         p.setRenderHint(QPainter::Antialiasing, false);
 
-        // Marco pixel art estilo tablón de campo
         p.fillRect(4, 0, cw - 8, ch, QColor(20, 18, 15, 215));
         p.fillRect(0, 4, cw, ch - 8, QColor(20, 18, 15, 215));
         p.fillRect(4, 2, cw - 8, 2, QColor(210, 180, 110));
@@ -356,7 +395,7 @@ void VentanaNivel1::construirEscenario() {
         itemCartel->setZValue(-1);
     }
 
-    // 5. Zona Segura
+    // 7. Zona Segura
     QRectF zona = controlador->getZonaEvacuacion();
     escena->addRect(zona, QPen(QPen(Qt::darkGreen, 3)), QBrush(QColor(46, 204, 113, 110)));
     QGraphicsTextItem* txtZona = escena->addText("ZONA SEGURA");
@@ -364,7 +403,7 @@ void VentanaNivel1::construirEscenario() {
     txtZona->setFont(QFont("Arial", 13, QFont::Bold));
     txtZona->setPos(zona.x() + 45, zona.y() - 28);
 
-    // 6. HUD superior y Barra de Vida Pixel Art
+    // 8. HUD superior y Barra de Vida Pixel Art
     hudTexto = escena->addText("Tiempo: 03:30 | Rescatados: 0/5 | Estado: Normal");
     hudTexto->setDefaultTextColor(Qt::white);
     hudTexto->setFont(QFont("Arial", 16, QFont::Bold));
@@ -595,10 +634,12 @@ void VentanaNivel1::actualizarAnimaciones(int direccion) {
     CapitanAmerica* heroe = controlador->getHeroe();
 
     if (heroe->isBloqueando() && !framesDefensa.empty()) {
-        if (contadorTicks % 4 == 0) {
-            frameDefensaActual = (frameDefensaActual + 1) % static_cast<int>(framesDefensa.size());
+        // Animación lenta de cubrirse: avanza despacio hasta la postura final de guardia y la mantiene fija
+        int ultimoFrame = static_cast<int>(framesDefensa.size()) - 1;
+        if (contadorTicks % 14 == 0 && frameDefensaActual < ultimoFrame) {
+            frameDefensaActual++;
         }
-        frameHeroe = framesDefensa[frameDefensaActual % framesDefensa.size()];
+        frameHeroe = framesDefensa[frameDefensaActual];
     } else if (heroe->isAtacandoCuerpoACuerpo() && !framesGolpear.empty()) {
         frameDefensaActual = 0;
         if (contadorTicks % 3 == 0) {
@@ -788,7 +829,6 @@ void VentanaNivel1::actualizarFrame() {
     refrescarTextoHUD();
     hudTexto->setPos(mapToScene(25, 16));
 
-    // Barra de vida pixel art más separada debajo del texto superior
     actualizarBarraVidaPixelArt(heroe->getVidaActual(), heroe->getVidaMax());
     itemBarraVida->setPos(mapToScene(25, 66));
 }
