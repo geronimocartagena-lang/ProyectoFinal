@@ -74,6 +74,14 @@ void JefeTrump::actualizarIA(float dt, float heroeX, bool jugadorSaltando, bool 
 
     percibirYAprender(jugadorSaltando, jugadorAgachado, jugadorBloqueando, escudoActivo);
 
+    // Reacción de salto táctico si el escudo viene hacia Trump y está en el suelo
+    if (escudoActivo && enSuelo && estadoIA == EstadoIATrump::Patrullando && memEscudosJugador > 12 && (static_cast<int>(posX) % 3 == 0)) {
+        estadoIA = EstadoIATrump::Saltando;
+        velY = -520.0f;
+        enSuelo = false;
+        velX = direccion * velocidadBase * 1.1f;
+    }
+
     if (estadoIA == EstadoIATrump::Aturdido) {
         velX = 0.0f;
         timerAturdido -= dt;
@@ -99,6 +107,14 @@ void JefeTrump::actualizarIA(float dt, float heroeX, bool jugadorSaltando, bool 
             cooldownAccion -= dt;
             if (cooldownAccion <= 0.0f) {
                 decidirSiguienteAccion(heroeX);
+            }
+            break;
+        }
+
+        case EstadoIATrump::Saltando: {
+            if (enSuelo && velY >= 0.0f) {
+                estadoIA = EstadoIATrump::Patrullando;
+                cooldownAccion = 0.45f;
             }
             break;
         }
@@ -218,6 +234,7 @@ QString JefeTrump::getNombreEstadoIA() const {
         case EstadoIATrump::Aturdido: return "FASE 2 • ATURDIDO";
         case EstadoIATrump::Embistiendo: return "FASE 2 • EMBESTIDA FURIA";
         case EstadoIATrump::PreparandoEmbestida: return "FASE 2 • ¡VA A EMBESTIR!";
+        case EstadoIATrump::Saltando: return "FASE 2 • SALTO EVASIVO";
         case EstadoIATrump::PreparandoDisparo:
         case EstadoIATrump::Disparando: return "FASE 2 • FUEGO + BOMBAS";
         default: return "FASE 2 • BOMBARDEO AÉREO";
@@ -227,6 +244,7 @@ QString JefeTrump::getNombreEstadoIA() const {
     case EstadoIATrump::Aturdido: return "FASE 1 • POSTURA ROTA";
     case EstadoIATrump::Embistiendo: return "FASE 1 • EMBESTIDA";
     case EstadoIATrump::PreparandoEmbestida: return "FASE 1 • PREPARANDO CARGA";
+    case EstadoIATrump::Saltando: return "FASE 1 • SALTO";
     case EstadoIATrump::PreparandoDisparo:
     case EstadoIATrump::Disparando: return "FASE 1 • DISPARANDO";
     default: return "FASE 1 • ANALIZANDO";

@@ -54,7 +54,7 @@ private:
     QAudioOutput* salidaSfxRecibeDano;
     size_t conteoDisparosPrevio;
 
-    // Sprites
+    // Sprites Capitán América
     QPixmap pixQuieto;
     std::vector<QPixmap> framesCorrer;
     std::vector<QPixmap> framesSaltar;
@@ -62,10 +62,11 @@ private:
     std::vector<QPixmap> framesDefensa;
     std::vector<QPixmap> framesEscudo;
 
+    // Sprites Donald Trump (Fila 1: Idle, Fila 2: Caminar, Fila 3: Correr/Embestida, Fila 4: Saltar)
     std::vector<QPixmap> framesTrumpIdle;
-    std::vector<QPixmap> framesTrumpDisparo;
-    std::vector<QPixmap> framesTrumpEmbestida;
-    std::vector<QPixmap> framesTrumpAturdido;
+    std::vector<QPixmap> framesTrumpCaminar;
+    std::vector<QPixmap> framesTrumpCorrerEmbestida;
+    std::vector<QPixmap> framesTrumpSaltar;
 
     QPixmap pixBalaJefe;
     QPixmap pixBombaJefe;
@@ -87,7 +88,7 @@ private:
     void cargarSprites();
     QPixmap limpiarFondoAjedrez(const QPixmap& original);
     QPixmap limpiarVerdeChroma(const QPixmap& original);
-    QPixmap limpiarFondoOscuro(const QPixmap& original);
+    QPixmap limpiarFondoPorEsquina(const QPixmap& original);
     QPixmap recortarBordesTransparentes(const QPixmap& pix, bool recortarAnchoExtra = true);
     void extraerSpritesPorBlob(const QPixmap& sheet, int yInicio, int yFin, int altoReferenciaMax, int altoObjetivo, std::vector<QPixmap>& destino);
     void actualizarAnimaciones(int direccion);
