@@ -17,5 +17,7 @@
         <file>EfectosSonido/GameOver.mp3</file>
         <file>EfectosSonido/DisparosSoldados.mp3</file>
         <file>EfectosSonido/CaminoLodo.mp3</file>
+        <file>EfectosSonido/Saltar.mp3</file>
+        <file>EfectosSonido/RecibeDaño.mp3</file>
     </qresource>
 </RCC>

@@ -14,14 +14,13 @@ MainWindow::MainWindow(QWidget* parent)
     setWindowTitle("Capitán América en la Guerra de los Mil Días");
     setMinimumSize(960, 540);
 
-    // Música del menú principal (Inicio.mp3)
+    // Configurar sonido de inicio (se reproducirá únicamente al presionar INICIAR)
     reproductorMenu = new QMediaPlayer(this);
     salidaAudioMenu = new QAudioOutput(this);
     reproductorMenu->setAudioOutput(salidaAudioMenu);
-    salidaAudioMenu->setVolume(0.65f);
+    salidaAudioMenu->setVolume(0.85f);
     reproductorMenu->setSource(QUrl("qrc:/new/prefix1/EfectosSonido/Inicio.mp3"));
-    reproductorMenu->setLoops(QMediaPlayer::Infinite);
-    reproductorMenu->play();
+    reproductorMenu->setLoops(QMediaPlayer::Once);
 
     QWidget* central = new QWidget(this);
     setCentralWidget(central);
@@ -121,7 +120,10 @@ MainWindow::~MainWindow() {
 }
 
 void MainWindow::iniciarJuego() {
-    reproductorMenu->stop();
+    btnIniciar->setEnabled(false);
+    reproductorMenu->setPosition(0);
+    reproductorMenu->play();
+
     ventanaNivel1 = new VentanaNivel1();
     ventanaNivel1->setWindowTitle("Capitán América en la Guerra de los Mil Días - Nivel 1");
     ventanaNivel1->showMaximized();

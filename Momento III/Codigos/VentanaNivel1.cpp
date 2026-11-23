@@ -58,21 +58,22 @@ VentanaNivel1::~VentanaNivel1() {
 }
 
 void VentanaNivel1::inicializarAudio() {
-    // 1. Música de fondo del Nivel 1
+    // 1. Música de fondo del Nivel 1 (volumen reducido)
     musicaFondo = new QMediaPlayer(this);
     salidaMusicaFondo = new QAudioOutput(this);
     musicaFondo->setAudioOutput(salidaMusicaFondo);
-    salidaMusicaFondo->setVolume(0.45f);
+    salidaMusicaFondo->setVolume(0.15f);
     musicaFondo->setSource(QUrl("qrc:/new/prefix1/EfectosSonido/MusicaFondoN1.mp3"));
     musicaFondo->setLoops(QMediaPlayer::Infinite);
     musicaFondo->play();
 
-    // 2. Efecto al caminar en lodo/fango
+    // 2. Efecto al caminar en lodo/fango (volumen aumentado al máximo)
     sfxLodo = new QMediaPlayer(this);
     salidaSfxLodo = new QAudioOutput(this);
     sfxLodo->setAudioOutput(salidaSfxLodo);
-    salidaSfxLodo->setVolume(0.75f);
+    salidaSfxLodo->setVolume(1.0f);
     sfxLodo->setSource(QUrl("qrc:/new/prefix1/EfectosSonido/CaminoLodo.mp3"));
+    sfxLodo->setLoops(QMediaPlayer::Infinite);
 
     // 3. Efecto de disparos enemigos
     sfxDisparo = new QMediaPlayer(this);
