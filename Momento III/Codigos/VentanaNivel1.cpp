@@ -124,12 +124,12 @@ void VentanaNivel1::inicializarAudio() {
     salidaSfxRecibeDano->setVolume(0.90f);
     sfxRecibeDano->setSource(QUrl("qrc:/new/prefix1/EfectosSonido/RecibeDaño.mp3"));
 
-    // 7. Efecto cuando un enemigo recibe daño (DolorEnemigo.mp3)
+    // 7. Efecto cuando un enemigo recibe daño (DañoEnemigo.mp3)
     sfxDolorEnemigo = new QMediaPlayer(this);
     salidaSfxDolorEnemigo = new QAudioOutput(this);
     sfxDolorEnemigo->setAudioOutput(salidaSfxDolorEnemigo);
     salidaSfxDolorEnemigo->setVolume(0.85f);
-    sfxDolorEnemigo->setSource(QUrl("qrc:/new/prefix1/EfectosSonido/DolorEnemigo.mp3"));
+    sfxDolorEnemigo->setSource(QUrl("qrc:/new/prefix1/EfectosSonido/DañoEnemigo.mp3"));
 }
 
 void VentanaNivel1::resizeEvent(QResizeEvent* event) {
@@ -889,7 +889,7 @@ void VentanaNivel1::actualizarFrame() {
     }
     vidaPreviaHeroe = vidaActual;
 
-    // Detectar si algún enemigo recibió daño por el escudo o golpe y reproducir DolorEnemigo.mp3
+    // Detectar si algún enemigo recibió daño por el escudo o golpe y reproducir DañoEnemigo.mp3
     int sumaVidaEnemigos = 0;
     for (const Enemigo* e : controlador->getEnemigos()) {
         if (e->isVivo()) sumaVidaEnemigos += e->getVidaActual();

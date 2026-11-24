@@ -24,5 +24,7 @@
         <file>FondoN2.png</file>
         <file>TrumpDisparaSalta.jpg</file>
         <file>Explosivos.jpg</file>
+        <file>EfectosSonido/ExplosivosN2.mp3</file>
+        <file>EfectosSonido/DañoEnemigo.mp3</file>
     </qresource>
 </RCC>

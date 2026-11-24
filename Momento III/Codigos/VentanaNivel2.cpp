@@ -120,11 +120,12 @@ void VentanaNivel2::inicializarAudio() {
     salidaSfxRecibeDano->setVolume(0.90f);
     sfxRecibeDano->setSource(QUrl("qrc:/new/prefix1/EfectosSonido/RecibeDaño.mp3"));
 
+    // Efecto cuando Donald Trump recibe daño (DañoEnemigo.mp3)
     sfxDolorEnemigo = new QMediaPlayer(this);
     salidaSfxDolorEnemigo = new QAudioOutput(this);
     sfxDolorEnemigo->setAudioOutput(salidaSfxDolorEnemigo);
     salidaSfxDolorEnemigo->setVolume(0.85f);
-    sfxDolorEnemigo->setSource(QUrl("qrc:/new/prefix1/EfectosSonido/DolorEnemigo.mp3"));
+    sfxDolorEnemigo->setSource(QUrl("qrc:/new/prefix1/EfectosSonido/DañoEnemigo.mp3"));
 }
 
 void VentanaNivel2::resizeEvent(QResizeEvent* event) {
@@ -838,7 +839,7 @@ void VentanaNivel2::actualizarFrame() {
     }
     vidaPreviaHeroe = vidaActual;
 
-    // Detectar si Donald Trump recibió daño y reproducir DolorEnemigo.mp3
+    // Detectar si Donald Trump recibió daño y reproducir DañoEnemigo.mp3
     int vidaActualJefe = jefe->getVidaActual();
     if (vidaPreviaJefe != -1 && vidaActualJefe < vidaPreviaJefe) {
         sfxDolorEnemigo->setPosition(0);
@@ -987,7 +988,7 @@ void VentanaNivel2::mostrarPantallaFinNivel(bool victoria) {
     layoutTarjeta->setSpacing(14);
     layoutTarjeta->setAlignment(Qt::AlignCenter);
 
-    QLabel* lblBadge = new QLabel(victoria ? "★ CAMPAÑA COMPLETADA ★" : "✖ DERROTA EN EL CARIBE ✖", tarjeta);
+    QLabel* lblBadge = new QLabel(victoria ? "" : "", tarjeta);
     lblBadge->setAlignment(Qt::AlignCenter);
     lblBadge->setStyleSheet(
         QString("color: %1;"
@@ -1010,8 +1011,8 @@ void VentanaNivel2::mostrarPantallaFinNivel(bool victoria) {
 
     QLabel* lblResumen = new QLabel(
         victoria
-            ? "Has derrotado a Donald Trump en la costa del Caribe y neutralizado la amenaza extranjera sobre Panamá."
-            : "Donald Trump ha superado tus defensas o se agotó el tiempo del combate.",
+            ? "Has derrotado a Donald Trump en la costa del Caribe y neutralizado la amenaza extranjera sobre Panamá :)"
+            : "Donald Trump ha conquistado Panamá o se agotó el tiempo del combate :(",
         tarjeta
         );
     lblResumen->setAlignment(Qt::AlignCenter);
