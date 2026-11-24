@@ -12,8 +12,16 @@ ControladorNivel2::ControladorNivel2(QObject* parent)
     timerBombardeo(1.4f),
     contadorBombas(0) {
 
-    heroe = new CapitanAmerica(180.0f, 370.0f);
-    jefe  = new JefeTrump(980.0f, 353.0f);
+    // Ambos personajes más pequeños y con la misma altura física (74 px)
+    heroe = new CapitanAmerica(180.0f, 391.0f);
+    jefe  = new JefeTrump(980.0f, 391.0f);
+
+    // Activar física de rebote en paredes y jefe para el Nivel 2
+    heroe->getEscudo()->setModoRebote(true);
+
+    // 2 plataformas en cada esquina para saltar y esquivar
+    plataformas.push_back({45.0f,  340.0f, 220.0f, 22.0f});
+    plataformas.push_back({1015.0f, 340.0f, 220.0f, 22.0f});
 
     timerReloj = new QTimer(this);
     connect(timerReloj, &QTimer::timeout, this, &ControladorNivel2::descontarSegundo);
@@ -38,10 +46,13 @@ void ControladorNivel2::setAgachado(bool estado) {
 
 QRectF ControladorNivel2::getHitBoxHeroeArena() const {
     QRectF base = heroe->getHitBox();
+    // Ajustar hitbox al tamaño de 74 px de altura (los pies están en posY + 95)
+    float topY = heroe->getPosY() + 21.0f;
+    float altoH = 74.0f;
     if (agachado && heroe->isEnSuelo()) {
-        return QRectF(base.x(), base.y() + base.height() * 0.48f, base.width(), base.height() * 0.52f);
+        return QRectF(base.x(), topY + altoH * 0.45f, base.width(), altoH * 0.55f);
     }
-    return base;
+    return QRectF(base.x(), topY, base.width(), altoH);
 }
 
 void ControladorNivel2::descontarSegundo() {
@@ -62,6 +73,26 @@ void ControladorNivel2::descontarSegundo() {
     }
 }
 
+void ControladorNivel2::procesarPlataformasHeroe() {
+    if (agachado) return;
+
+    float piesHeroe = heroe->getPosY() + 95.0f;
+    float centroX   = heroe->getPosX() + 35.0f;
+
+    if (heroe->getVelY() >= 0.0f) {
+        for (const auto& plat : plataformas) {
+            if (centroX >= plat.x && centroX <= (plat.x + plat.ancho)) {
+                if (piesHeroe >= plat.y && piesHeroe <= plat.y + 20.0f) {
+                    heroe->setPosY(plat.y - 95.0f);
+                    heroe->setVelY(0.0f);
+                    heroe->setEnSuelo(true);
+                    return;
+                }
+            }
+        }
+    }
+}
+
 void ControladorNivel2::verificarColisionesArena() {
     QRectF boxHeroe  = getHitBoxHeroeArena();
     QRectF boxJefe   = jefe->getHitBox();
@@ -70,26 +101,35 @@ void ControladorNivel2::verificarColisionesArena() {
 
     EscudoVibranium* escudo = heroe->getEscudo();
     if (escudo->estaActivo()) {
+        // Rebote del escudo en los límites laterales de la arena (reposicionando para evitar doble rebote)
         if (escudo->getPosX() <= 24.0f) {
-            escudo->rebotarVectorial(-1.0f, 0.0f);
+            escudo->setPosX(25.0f);
+            escudo->rebotarVectorial(1.0f, 0.0f);
         } else if (escudo->getPosX() >= 1256.0f) {
+            escudo->setPosX(1255.0f);
             escudo->rebotarVectorial(-1.0f, 0.0f);
         }
 
-        if (boxEscudo.intersects(boxHeroe) && std::abs(escudo->getPosX() - (heroe->getPosX() + 35.0f)) < 45.0f) {
-            if ((escudo->getPosX() < heroe->getPosX() + 35.0f && heroe->getVelX() >= 0) ||
-                (escudo->getPosX() > heroe->getPosX() + 35.0f && heroe->getVelX() <= 0)) {
-                escudo->desactivar();
-            }
+        // Permitir recoger el escudo solo después de haber volado al menos 0.28s
+        if (escudo->getTiempoActivo() > 0.28f && boxEscudo.intersects(boxHeroe)) {
+            escudo->desactivar();
         }
     }
 
+    // Impacto del escudo contra Donald Trump
     if (escudo->estaActivo() && jefe->isVivo() && boxEscudo.intersects(boxJefe)) {
         float dirImpulso = (jefe->getPosX() >= escudo->getPosX()) ? 1.0f : -1.0f;
         jefe->recibirDanio(22, dirImpulso * 340.0f, true);
-        escudo->rebotarVectorial(-1.0f, -0.45f);
+        // Separar ligeramente el escudo para que no golpee múltiples veces en el mismo frame
+        if (dirImpulso > 0.0f) {
+            escudo->setPosX(boxJefe.left() - 20.0f);
+        } else {
+            escudo->setPosX(boxJefe.right() + 20.0f);
+        }
+        escudo->rebotarVectorial(-1.0f, 0.0f);
     }
 
+    // Golpe cuerpo a cuerpo del Capitán
     if (heroe->isAtacandoCuerpoACuerpo() && !heroe->isGolpeYaImpacto() && jefe->isVivo()) {
         if (boxGolpe.intersects(boxJefe)) {
             float dirImpulso = (jefe->getPosX() >= heroe->getPosX()) ? 1.0f : -1.0f;
@@ -98,6 +138,7 @@ void ControladorNivel2::verificarColisionesArena() {
         }
     }
 
+    // Contacto directo con Trump
     if (jefe->isVivo() && boxJefe.intersects(boxHeroe)) {
         if (jefe->isEmbistiendo()) {
             float dirEmpuje = (heroe->getPosX() >= jefe->getPosX()) ? 1.0f : -1.0f;
@@ -112,15 +153,19 @@ void ControladorNivel2::verificarColisionesArena() {
         }
     }
 
+    // Proyectiles y bombas del jefe
     for (auto& proj : proyectilesJefe) {
         if (!proj.activa) continue;
 
         QRectF boxProj = proj.esBomba
-                             ? QRectF(proj.x - 16.0f, proj.y - 16.0f, 32.0f, 32.0f)
+                             ? QRectF(proj.x - 16.0f, proj.y - 24.0f, 32.0f, 48.0f)
                              : QRectF(proj.x, proj.y, 32.0f, 12.0f);
 
         if (boxProj.intersects(boxHeroe)) {
             proj.activa = false;
+            if (proj.esBomba) {
+                explosiones.push_back({proj.x, proj.y, 0.36f, 0.36f});
+            }
             int danioBase = proj.esBomba ? 24 : 16;
             heroe->recibirDanio(danioBase);
             float dirEmpuje = (proj.vx >= 0.0f) ? 1.0f : -1.0f;
@@ -143,6 +188,8 @@ void ControladorNivel2::actualizarReglas(float dt) {
 
     heroe->actualizarEstado(dt);
     heroe->actualizarFisica(dt);
+    procesarPlataformasHeroe();
+
     if (heroe->getPosX() > 1200.0f) heroe->setPosX(1200.0f);
     if (heroe->getPosX() < 10.0f) heroe->setPosX(10.0f);
 
@@ -164,7 +211,7 @@ void ControladorNivel2::actualizarReglas(float dt) {
 
             float offsetX = ((contadorBombas % 3) - 1) * 175.0f;
             float dropX = std::clamp(heroe->getPosX() + offsetX, 80.0f, 1200.0f);
-            float vxBomba = ((contadorBombas % 2 == 0) ? 1.0f : -1.0f) * 55.0f;
+            float vxBomba = ((contadorBombas % 2 == 0) ? 1.0f : -1.0f) * 45.0f;
             proyectilesJefe.push_back({dropX, -70.0f, vxBomba, 40.0f, true, true});
         }
     }
@@ -176,8 +223,21 @@ void ControladorNivel2::actualizarReglas(float dt) {
             proj.vy += gravedadBombas * dt;
             proj.x  += proj.vx * dt;
             proj.y  += proj.vy * dt;
-            if (proj.y >= 455.0f) {
+
+            bool chocoPlataforma = false;
+            for (const auto& plat : plataformas) {
+                if (proj.x >= plat.x && proj.x <= (plat.x + plat.ancho) &&
+                    proj.y >= plat.y && proj.y <= plat.y + 18.0f) {
+                    proj.activa = false;
+                    explosiones.push_back({proj.x, plat.y, 0.36f, 0.36f});
+                    chocoPlataforma = true;
+                    break;
+                }
+            }
+
+            if (!chocoPlataforma && proj.y >= 460.0f) {
                 proj.activa = false;
+                explosiones.push_back({proj.x, 462.0f, 0.36f, 0.36f});
             }
         } else {
             proj.x += proj.vx * dt;
@@ -191,6 +251,15 @@ void ControladorNivel2::actualizarReglas(float dt) {
         std::remove_if(proyectilesJefe.begin(), proyectilesJefe.end(),
                        [](const ProyectilJefe& p) { return !p.activa; }),
         proyectilesJefe.end()
+        );
+
+    for (auto& exp : explosiones) {
+        exp.tiempoVida -= dt;
+    }
+    explosiones.erase(
+        std::remove_if(explosiones.begin(), explosiones.end(),
+                       [](const ExplosionVisual& e) { return e.tiempoVida <= 0.0f; }),
+        explosiones.end()
         );
 
     verificarColisionesArena();

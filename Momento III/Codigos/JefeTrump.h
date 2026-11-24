@@ -21,6 +21,7 @@ enum class EstadoIATrump {
     Disparando,
     PreparandoEmbestida,
     Embistiendo,
+    Saltando,
     Aturdido
 };
 
@@ -63,6 +64,8 @@ public:
     EstadoIATrump getEstadoIA() const { return estadoIA; }
     bool isAturdido() const { return estadoIA == EstadoIATrump::Aturdido; }
     bool isEmbistiendo() const { return estadoIA == EstadoIATrump::Embistiendo; }
+    bool isCorriendo() const { return estadoIA == EstadoIATrump::Embistiendo || (faseActual == 2 && std::abs(velX) > 220.0f); }
+    bool isCaminando() const { return enSuelo && std::abs(velX) > 10.0f && !isCorriendo(); }
     bool isDisparando() const { return estadoIA == EstadoIATrump::Disparando || estadoIA == EstadoIATrump::PreparandoDisparo; }
     bool isVivo() const { return vidaActual > 0; }
     QString getNombreEstadoIA() const;

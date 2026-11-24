@@ -19,6 +19,7 @@ VentanaNivel1::VentanaNivel1(QWidget* parent)
     : QGraphicsView(parent),
     ultimaVidaRenderizada(-1),
     vidaPreviaHeroe(-1),
+    vidaTotalEnemigosPrevia(-1),
     overlayFinNivel(nullptr),
     conteoBalasPrevio(0),
     frameHeroeActual(0),
@@ -45,6 +46,12 @@ VentanaNivel1::VentanaNivel1(QWidget* parent)
 
     controlador = new ControladorNivel1(this);
     vidaPreviaHeroe = controlador->getHeroe()->getVidaActual();
+
+    int sumaVidaEnemigos = 0;
+    for (const Enemigo* e : controlador->getEnemigos()) {
+        if (e->isVivo()) sumaVidaEnemigos += e->getVidaActual();
+    }
+    vidaTotalEnemigosPrevia = sumaVidaEnemigos;
 
     inicializarAudio();
     construirEscenario();
@@ -116,6 +123,13 @@ void VentanaNivel1::inicializarAudio() {
     sfxRecibeDano->setAudioOutput(salidaSfxRecibeDano);
     salidaSfxRecibeDano->setVolume(0.90f);
     sfxRecibeDano->setSource(QUrl("qrc:/new/prefix1/EfectosSonido/RecibeDaño.mp3"));
+
+    // 7. Efecto cuando un enemigo recibe daño (DañoEnemigo.mp3)
+    sfxDolorEnemigo = new QMediaPlayer(this);
+    salidaSfxDolorEnemigo = new QAudioOutput(this);
+    sfxDolorEnemigo->setAudioOutput(salidaSfxDolorEnemigo);
+    salidaSfxDolorEnemigo->setVolume(0.85f);
+    sfxDolorEnemigo->setSource(QUrl("qrc:/new/prefix1/EfectosSonido/DañoEnemigo.mp3"));
 }
 
 void VentanaNivel1::resizeEvent(QResizeEvent* event) {
@@ -875,6 +889,17 @@ void VentanaNivel1::actualizarFrame() {
     }
     vidaPreviaHeroe = vidaActual;
 
+    // Detectar si algún enemigo recibió daño por el escudo o golpe y reproducir DañoEnemigo.mp3
+    int sumaVidaEnemigos = 0;
+    for (const Enemigo* e : controlador->getEnemigos()) {
+        if (e->isVivo()) sumaVidaEnemigos += e->getVidaActual();
+    }
+    if (vidaTotalEnemigosPrevia != -1 && sumaVidaEnemigos < vidaTotalEnemigosPrevia) {
+        sfxDolorEnemigo->setPosition(0);
+        sfxDolorEnemigo->play();
+    }
+    vidaTotalEnemigosPrevia = sumaVidaEnemigos;
+
     actualizarAnimaciones(dir);
 
     double anchoHeroePix = itemHeroe->pixmap().width();
@@ -968,7 +993,7 @@ void VentanaNivel1::mostrarPantallaFinNivel(bool victoria) {
     layoutTarjeta->setSpacing(14);
     layoutTarjeta->setAlignment(Qt::AlignCenter);
 
-    QLabel* lblBadge = new QLabel(victoria ? "★ NIVEL 1 COMPLETADO ★" : "✖ FIN DE LA PARTIDA ✖", tarjeta);
+    QLabel* lblBadge = new QLabel(victoria ? " " : "", tarjeta);
     lblBadge->setAlignment(Qt::AlignCenter);
     lblBadge->setStyleSheet(
         QString("color: %1;"
@@ -979,7 +1004,7 @@ void VentanaNivel1::mostrarPantallaFinNivel(bool victoria) {
                 "background: transparent;").arg(victoria ? "#2ecc71" : "#ff7675")
         );
 
-    QLabel* lblTitulo = new QLabel(victoria ? "¡LO LOGRASTE!\n¡PUEBLO A SALVO!" : "MISIÓN FALLIDA", tarjeta);
+    QLabel* lblTitulo = new QLabel(victoria ? "¡LO LOGRASTE!\n¡PUEBLO A SALVO! :)" : "MISIÓN FALLIDA", tarjeta);
     lblTitulo->setAlignment(Qt::AlignCenter);
     lblTitulo->setStyleSheet(
         QString("color: %1;"
@@ -998,7 +1023,7 @@ void VentanaNivel1::mostrarPantallaFinNivel(bool victoria) {
     QLabel* lblResumen = new QLabel(
         victoria
             ? QString("Has evacuado con éxito a los %1/5 grupos de civiles.").arg(controlador->getCivilesEvacuados())
-            : "Has perdido toda tu salud o se agotó el tiempo de rescate.",
+            : "Has perdido toda tu salud o se agotó el tiempo de rescate :(",
         tarjeta
         );
     lblResumen->setAlignment(Qt::AlignCenter);
@@ -1017,9 +1042,9 @@ void VentanaNivel1::mostrarPantallaFinNivel(bool victoria) {
 
     if (victoria) {
         QLabel* lblCinematica = new QLabel(
-            "CINEMÁTICA FINAL:\n"
+            " CINEMÁTICA FINAL:\n "
             "En el futuro, Donald Trump observa el mapa de Colombia y Panamá:\n"
-            "«Que Colombia pelee entre ellos. Me quedaré con Panamá».",
+            "«Que Colombia pelee entre ellos. Me quedaré con Panamá JAJAJA».",
             tarjeta
             );
         lblCinematica->setAlignment(Qt::AlignCenter);

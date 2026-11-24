@@ -53,7 +53,7 @@ MainWindow::MainWindow(QWidget* parent)
     panelLayout->setAlignment(Qt::AlignCenter);
     panelLayout->setSpacing(14);
 
-    QLabel* lblSubtitulo = new QLabel("MISIÓN HISTÓRICA • CAMPAÑA COMPLETA", panelTitulo);
+    QLabel* lblSubtitulo = new QLabel("", panelTitulo);
     lblSubtitulo->setAlignment(Qt::AlignCenter);
     lblSubtitulo->setStyleSheet(
         "color: #f1c40f;"

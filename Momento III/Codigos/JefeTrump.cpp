@@ -3,7 +3,7 @@
 #include <algorithm>
 
 JefeTrump::JefeTrump(float x, float y)
-    : Personaje(x, y, 88.0f, 112.0f, 210.0f),
+    : Personaje(x, y, 60.0f, 74.0f, 210.0f),
     vidaMax(300),
     vidaActual(300),
     faseActual(1),
@@ -74,6 +74,13 @@ void JefeTrump::actualizarIA(float dt, float heroeX, bool jugadorSaltando, bool 
 
     percibirYAprender(jugadorSaltando, jugadorAgachado, jugadorBloqueando, escudoActivo);
 
+    if (escudoActivo && enSuelo && estadoIA == EstadoIATrump::Patrullando && memEscudosJugador > 12 && (static_cast<int>(posX) % 3 == 0)) {
+        estadoIA = EstadoIATrump::Saltando;
+        velY = -520.0f;
+        enSuelo = false;
+        velX = direccion * velocidadBase * 1.1f;
+    }
+
     if (estadoIA == EstadoIATrump::Aturdido) {
         velX = 0.0f;
         timerAturdido -= dt;
@@ -103,24 +110,32 @@ void JefeTrump::actualizarIA(float dt, float heroeX, bool jugadorSaltando, bool 
             break;
         }
 
+        case EstadoIATrump::Saltando: {
+            if (enSuelo && velY >= 0.0f) {
+                estadoIA = EstadoIATrump::Patrullando;
+                cooldownAccion = 0.45f;
+            }
+            break;
+        }
+
         case EstadoIATrump::PreparandoDisparo: {
             velX = 0.0f;
             direccion = (heroeX >= posX) ? 1 : -1;
             timerEstado -= dt;
             if (timerEstado <= 0.0f) {
                 estadoIA = EstadoIATrump::Disparando;
-                timerEstado = (faseActual == 2) ? 0.25f : 0.35f;
+                timerEstado = (faseActual == 2) ? 0.32f : 0.42f;
 
                 float rapidezBala = (faseActual == 2) ? 640.0f : 490.0f;
                 float origenX = (direccion > 0) ? (posX + ancho) : (posX - 24.0f);
                 float alturaDisparo = (memSaltosJugador > memAgachadasJugador + 15)
-                                          ? (posY + 32.0f)
-                                          : (posY + 38.0f);
+                                          ? (posY + 20.0f)
+                                          : (posY + 26.0f);
 
                 proyectiles.push_back({origenX, alturaDisparo, direccion * rapidezBala, 0.0f, false, true});
 
                 if (faseActual == 2) {
-                    proyectiles.push_back({origenX - direccion * 45.0f, posY + 68.0f, direccion * (rapidezBala * 0.92f), 0.0f, false, true});
+                    proyectiles.push_back({origenX - direccion * 45.0f, posY + 46.0f, direccion * (rapidezBala * 0.92f), 0.0f, false, true});
                 }
             }
             break;
@@ -218,6 +233,7 @@ QString JefeTrump::getNombreEstadoIA() const {
         case EstadoIATrump::Aturdido: return "FASE 2 • ATURDIDO";
         case EstadoIATrump::Embistiendo: return "FASE 2 • EMBESTIDA FURIA";
         case EstadoIATrump::PreparandoEmbestida: return "FASE 2 • ¡VA A EMBESTIR!";
+        case EstadoIATrump::Saltando: return "FASE 2 • SALTO EVASIVO";
         case EstadoIATrump::PreparandoDisparo:
         case EstadoIATrump::Disparando: return "FASE 2 • FUEGO + BOMBAS";
         default: return "FASE 2 • BOMBARDEO AÉREO";
@@ -227,6 +243,7 @@ QString JefeTrump::getNombreEstadoIA() const {
     case EstadoIATrump::Aturdido: return "FASE 1 • POSTURA ROTA";
     case EstadoIATrump::Embistiendo: return "FASE 1 • EMBESTIDA";
     case EstadoIATrump::PreparandoEmbestida: return "FASE 1 • PREPARANDO CARGA";
+    case EstadoIATrump::Saltando: return "FASE 1 • SALTO";
     case EstadoIATrump::PreparandoDisparo:
     case EstadoIATrump::Disparando: return "FASE 1 • DISPARANDO";
     default: return "FASE 1 • ANALIZANDO";
