@@ -19,6 +19,7 @@ VentanaNivel1::VentanaNivel1(QWidget* parent)
     : QGraphicsView(parent),
     ultimaVidaRenderizada(-1),
     vidaPreviaHeroe(-1),
+    vidaTotalEnemigosPrevia(-1),
     overlayFinNivel(nullptr),
     conteoBalasPrevio(0),
     frameHeroeActual(0),
@@ -45,6 +46,12 @@ VentanaNivel1::VentanaNivel1(QWidget* parent)
 
     controlador = new ControladorNivel1(this);
     vidaPreviaHeroe = controlador->getHeroe()->getVidaActual();
+
+    int sumaVidaEnemigos = 0;
+    for (const Enemigo* e : controlador->getEnemigos()) {
+        if (e->isVivo()) sumaVidaEnemigos += e->getVidaActual();
+    }
+    vidaTotalEnemigosPrevia = sumaVidaEnemigos;
 
     inicializarAudio();
     construirEscenario();
@@ -116,6 +123,13 @@ void VentanaNivel1::inicializarAudio() {
     sfxRecibeDano->setAudioOutput(salidaSfxRecibeDano);
     salidaSfxRecibeDano->setVolume(0.90f);
     sfxRecibeDano->setSource(QUrl("qrc:/new/prefix1/EfectosSonido/RecibeDaño.mp3"));
+
+    // 7. Efecto cuando un enemigo recibe daño (DolorEnemigo.mp3)
+    sfxDolorEnemigo = new QMediaPlayer(this);
+    salidaSfxDolorEnemigo = new QAudioOutput(this);
+    sfxDolorEnemigo->setAudioOutput(salidaSfxDolorEnemigo);
+    salidaSfxDolorEnemigo->setVolume(0.85f);
+    sfxDolorEnemigo->setSource(QUrl("qrc:/new/prefix1/EfectosSonido/DolorEnemigo.mp3"));
 }
 
 void VentanaNivel1::resizeEvent(QResizeEvent* event) {
@@ -874,6 +888,17 @@ void VentanaNivel1::actualizarFrame() {
         sfxRecibeDano->play();
     }
     vidaPreviaHeroe = vidaActual;
+
+    // Detectar si algún enemigo recibió daño por el escudo o golpe y reproducir DolorEnemigo.mp3
+    int sumaVidaEnemigos = 0;
+    for (const Enemigo* e : controlador->getEnemigos()) {
+        if (e->isVivo()) sumaVidaEnemigos += e->getVidaActual();
+    }
+    if (vidaTotalEnemigosPrevia != -1 && sumaVidaEnemigos < vidaTotalEnemigosPrevia) {
+        sfxDolorEnemigo->setPosition(0);
+        sfxDolorEnemigo->play();
+    }
+    vidaTotalEnemigosPrevia = sumaVidaEnemigos;
 
     actualizarAnimaciones(dir);
 

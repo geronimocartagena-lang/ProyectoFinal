@@ -35,6 +35,7 @@ public:
     float getPosX() const { return posX; }
     float getPosY() const { return posY; }
     int getDireccion() const { return direccion; }
+    int getVidaActual() const { return vida; }
     bool isVivo() const { return vivo; }
     bool isDisparando() const { return disparando; }
     QRectF getHitBox() const { return QRectF(posX + 18.0f, posY + 10.0f, ancho - 36.0f, alto - 10.0f); }

@@ -4,7 +4,6 @@
 #include <QGraphicsView>
 #include <QGraphicsScene>
 #include <QGraphicsPixmapItem>
-#include <QGraphicsRectItem>
 #include <QGraphicsTextItem>
 #include <QKeyEvent>
 #include <QResizeEvent>
@@ -35,9 +34,10 @@ private:
     QGraphicsPixmapItem* itemBarraVida;
     int ultimaVidaRenderizada;
     int vidaPreviaHeroe;
+    int vidaTotalEnemigosPrevia;
     QWidget* overlayFinNivel;
 
-    // Sistema de Audio
+    // Audio
     QMediaPlayer* musicaFondo;
     QAudioOutput* salidaMusicaFondo;
     QMediaPlayer* sfxLodo;
@@ -50,9 +50,12 @@ private:
     QAudioOutput* salidaSfxSaltar;
     QMediaPlayer* sfxRecibeDano;
     QAudioOutput* salidaSfxRecibeDano;
+    QMediaPlayer* sfxDolorEnemigo;
+    QAudioOutput* salidaSfxDolorEnemigo;
     size_t conteoBalasPrevio;
 
     QPixmap pixQuieto;
+    QPixmap pixBalaEnemiga;
     std::vector<QPixmap> framesCorrer;
     std::vector<QPixmap> framesSaltar;
     std::vector<QPixmap> framesGolpear;
@@ -61,7 +64,6 @@ private:
     std::vector<std::vector<QPixmap>> framesCampesinos;
     std::vector<QPixmap> framesEnemigoCaminar;
     std::vector<QPixmap> framesEnemigoDisparar;
-    QPixmap pixBalaEnemiga;
 
     int frameHeroeActual;
     int frameGolpeActual;

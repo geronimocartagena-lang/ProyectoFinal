@@ -3,7 +3,7 @@
 #include <algorithm>
 
 JefeTrump::JefeTrump(float x, float y)
-    : Personaje(x, y, 76.0f, 96.0f, 210.0f),
+    : Personaje(x, y, 60.0f, 74.0f, 210.0f),
     vidaMax(300),
     vidaActual(300),
     faseActual(1),
@@ -129,13 +129,13 @@ void JefeTrump::actualizarIA(float dt, float heroeX, bool jugadorSaltando, bool 
                 float rapidezBala = (faseActual == 2) ? 640.0f : 490.0f;
                 float origenX = (direccion > 0) ? (posX + ancho) : (posX - 24.0f);
                 float alturaDisparo = (memSaltosJugador > memAgachadasJugador + 15)
-                                          ? (posY + 26.0f)
-                                          : (posY + 34.0f);
+                                          ? (posY + 20.0f)
+                                          : (posY + 26.0f);
 
                 proyectiles.push_back({origenX, alturaDisparo, direccion * rapidezBala, 0.0f, false, true});
 
                 if (faseActual == 2) {
-                    proyectiles.push_back({origenX - direccion * 45.0f, posY + 56.0f, direccion * (rapidezBala * 0.92f), 0.0f, false, true});
+                    proyectiles.push_back({origenX - direccion * 45.0f, posY + 46.0f, direccion * (rapidezBala * 0.92f), 0.0f, false, true});
                 }
             }
             break;

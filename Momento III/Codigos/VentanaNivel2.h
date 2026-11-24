@@ -40,6 +40,7 @@ private:
     int ultimaVidaHeroeRender;
     int ultimaVidaJefeRender;
     int vidaPreviaHeroe;
+    int vidaPreviaJefe;
     QWidget* overlayFinNivel;
 
     // Audio
@@ -47,13 +48,18 @@ private:
     QAudioOutput* salidaMusicaFondo;
     QMediaPlayer* sfxDisparo;
     QAudioOutput* salidaSfxDisparo;
+    QMediaPlayer* sfxExplosion;
+    QAudioOutput* salidaSfxExplosion;
     QMediaPlayer* sfxGameOver;
     QAudioOutput* salidaSfxGameOver;
     QMediaPlayer* sfxSaltar;
     QAudioOutput* salidaSfxSaltar;
     QMediaPlayer* sfxRecibeDano;
     QAudioOutput* salidaSfxRecibeDano;
+    QMediaPlayer* sfxDolorEnemigo;
+    QAudioOutput* salidaSfxDolorEnemigo;
     size_t conteoDisparosPrevio;
+    size_t conteoExplosionesPrevio;
 
     // Sprites Capitán América
     QPixmap pixQuieto;
