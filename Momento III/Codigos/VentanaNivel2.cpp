@@ -411,7 +411,7 @@ void VentanaNivel2::construirEscenario() {
         itemPlat->setZValue(1);
     }
 
-    // --- MENÚ DE TECLAS IGUAL AL PRIMER NIVEL ---
+    // --- MENÚ DE TECLAS PIXEL ART ---
     {
         const int cw = 270;
         const int ch = 96;
@@ -443,9 +443,12 @@ void VentanaNivel2::construirEscenario() {
         itemCartel->setZValue(8);
     }
 
-    hudTexto = escena->addText("Tiempo: 03:00 | Nivel 2: Costa del Caribe | FASE 1");
+    // HUD superior en tipografía Pixel Art
+    QFont fontPixelHUD2("Courier New", 14, QFont::Bold);
+    fontPixelHUD2.setStyleStrategy(QFont::NoAntialias);
+    hudTexto = escena->addText("Tiempo: 03:00 | FASE 1");
     hudTexto->setDefaultTextColor(Qt::white);
-    hudTexto->setFont(QFont("Arial", 15, QFont::Bold));
+    hudTexto->setFont(fontPixelHUD2);
     hudTexto->setPos(25, -88);
     hudTexto->setZValue(10);
 
@@ -953,7 +956,7 @@ void VentanaNivel2::refrescarTextoHUD() {
     int segs = controlador->getTiempoRestante();
     int min = segs / 60;
     int seg = segs % 60;
-    QString texto = QString("Tiempo: %1:%2 | COSTA DEL CARIBE • %3")
+    QString texto = QString("Tiempo: %1:%2 |  %3")
                         .arg(min, 2, 10, QChar('0'))
                         .arg(seg, 2, 10, QChar('0'))
                         .arg(controlador->getJefe()->getNombreEstadoIA());
@@ -999,7 +1002,7 @@ void VentanaNivel2::mostrarPantallaFinNivel(bool victoria) {
                 "background: transparent;").arg(victoria ? "#2ecc71" : "#ff7675")
         );
 
-    QLabel* lblTitulo = new QLabel(victoria ? "¡VICTORIA TOTAL!\n¡SOBERANÍA DEFENDIDA!" : "MISIÓN FALLIDA", tarjeta);
+    QLabel* lblTitulo = new QLabel(victoria ? "¡VICTORIA TOTAL!\n¡SOBERANÍA DEFENDIDA" : "MISIÓN FALLIDA", tarjeta);
     lblTitulo->setAlignment(Qt::AlignCenter);
     lblTitulo->setStyleSheet(
         QString("color: %1;"
@@ -1011,8 +1014,8 @@ void VentanaNivel2::mostrarPantallaFinNivel(bool victoria) {
 
     QLabel* lblResumen = new QLabel(
         victoria
-            ? "Has derrotado a Donald Trump en la costa del Caribe y neutralizado la amenaza extranjera sobre Panamá :)"
-            : "Donald Trump ha conquistado Panamá o se agotó el tiempo del combate :(",
+            ? "Has derrotado a Donald Trump en la costa del Caribe y la amenaza extranjera sobre Panamá :)"
+            : "Donald Trump ha Conquistado Panamá o se agotó el tiempo del combate :(",
         tarjeta
         );
     lblResumen->setAlignment(Qt::AlignCenter);

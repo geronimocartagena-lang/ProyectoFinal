@@ -439,7 +439,7 @@ void VentanaNivel1::construirEscenario() {
         qWarning() << e.what();
     }
 
-    // 6. Cartel de indicaciones de controles en el escenario
+    // 6. Cartel de indicaciones de controles en el escenario (Pixel Art)
     {
         const int cw = 310;
         const int ch = 122;
@@ -477,18 +477,22 @@ void VentanaNivel1::construirEscenario() {
         itemCartel->setZValue(-1);
     }
 
-    // 7. Zona Segura
+    // 7. Zona Segura (Tipografía Pixel Art)
     QRectF zona = controlador->getZonaEvacuacion();
     escena->addRect(zona, QPen(QPen(Qt::darkGreen, 3)), QBrush(QColor(46, 204, 113, 110)));
+    QFont fontPixelZona("Courier New", 13, QFont::Bold);
+    fontPixelZona.setStyleStrategy(QFont::NoAntialias);
     QGraphicsTextItem* txtZona = escena->addText("ZONA SEGURA");
     txtZona->setDefaultTextColor(Qt::white);
-    txtZona->setFont(QFont("Arial", 13, QFont::Bold));
+    txtZona->setFont(fontPixelZona);
     txtZona->setPos(zona.x() + 55, zona.y() - 28);
 
-    // 8. HUD superior y Barra de Vida Pixel Art
-    hudTexto = escena->addText("Tiempo: 04:00 | Rescatados: 0/5 | Estado: Normal");
+    // 8. HUD superior (Tipografía Pixel Art y sin la palabra "Estado") y Barra de Vida Pixel Art
+    QFont fontPixelHUD("Courier New", 15, QFont::Bold);
+    fontPixelHUD.setStyleStrategy(QFont::NoAntialias);
+    hudTexto = escena->addText("Tiempo: 04:00 | Rescatados: 0/5 | Normal");
     hudTexto->setDefaultTextColor(Qt::white);
-    hudTexto->setFont(QFont("Arial", 16, QFont::Bold));
+    hudTexto->setFont(fontPixelHUD);
     hudTexto->setZValue(10);
 
     itemBarraVida = escena->addPixmap(QPixmap());
@@ -957,7 +961,7 @@ void VentanaNivel1::refrescarTextoHUD() {
     int segundosRestantes = controlador->getTiempoRestante();
     int min = segundosRestantes / 60;
     int seg = segundosRestantes % 60;
-    QString texto = QString("Tiempo: %1:%2 | Rescatados: %3/5 | Estado: %4")
+    QString texto = QString("Tiempo: %1:%2 | Rescatados: %3/5 | %4")
                         .arg(min, 2, 10, QChar('0'))
                         .arg(seg, 2, 10, QChar('0'))
                         .arg(controlador->getCivilesEvacuados())
