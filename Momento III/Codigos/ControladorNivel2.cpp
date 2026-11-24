@@ -12,8 +12,13 @@ ControladorNivel2::ControladorNivel2(QObject* parent)
     timerBombardeo(1.4f),
     contadorBombas(0) {
 
-    heroe = new CapitanAmerica(180.0f, 370.0f);
-    jefe  = new JefeTrump(980.0f, 353.0f);
+    // Ambos personajes con la misma altura física (96 px)
+    heroe = new CapitanAmerica(180.0f, 369.0f);
+    jefe  = new JefeTrump(980.0f, 369.0f);
+
+    // 2 plataformas en cada esquina (izquierda y derecha) para saltar y esquivar
+    plataformas.push_back({45.0f,  325.0f, 220.0f, 22.0f});
+    plataformas.push_back({1015.0f, 325.0f, 220.0f, 22.0f});
 
     timerReloj = new QTimer(this);
     connect(timerReloj, &QTimer::timeout, this, &ControladorNivel2::descontarSegundo);
@@ -59,6 +64,27 @@ void ControladorNivel2::descontarSegundo() {
         juegoTerminado = true;
         misionCumplida = false;
         emit nivelFinalizado(false);
+    }
+}
+
+void ControladorNivel2::procesarPlataformasHeroe() {
+    // Si el jugador mantiene S / Flecha Abajo, puede bajar de la plataforma
+    if (agachado) return;
+
+    float piesHeroe = heroe->getPosY() + 95.0f;
+    float centroX   = heroe->getPosX() + 35.0f;
+
+    if (heroe->getVelY() >= 0.0f) {
+        for (const auto& plat : plataformas) {
+            if (centroX >= plat.x && centroX <= (plat.x + plat.ancho)) {
+                if (piesHeroe >= plat.y && piesHeroe <= plat.y + 20.0f) {
+                    heroe->setPosY(plat.y - 95.0f);
+                    heroe->setVelY(0.0f);
+                    heroe->setEnSuelo(true);
+                    return;
+                }
+            }
+        }
     }
 }
 
@@ -116,11 +142,14 @@ void ControladorNivel2::verificarColisionesArena() {
         if (!proj.activa) continue;
 
         QRectF boxProj = proj.esBomba
-                             ? QRectF(proj.x - 16.0f, proj.y - 16.0f, 32.0f, 32.0f)
+                             ? QRectF(proj.x - 16.0f, proj.y - 24.0f, 32.0f, 48.0f)
                              : QRectF(proj.x, proj.y, 32.0f, 12.0f);
 
         if (boxProj.intersects(boxHeroe)) {
             proj.activa = false;
+            if (proj.esBomba) {
+                explosiones.push_back({proj.x, proj.y, 0.36f, 0.36f});
+            }
             int danioBase = proj.esBomba ? 24 : 16;
             heroe->recibirDanio(danioBase);
             float dirEmpuje = (proj.vx >= 0.0f) ? 1.0f : -1.0f;
@@ -143,6 +172,8 @@ void ControladorNivel2::actualizarReglas(float dt) {
 
     heroe->actualizarEstado(dt);
     heroe->actualizarFisica(dt);
+    procesarPlataformasHeroe();
+
     if (heroe->getPosX() > 1200.0f) heroe->setPosX(1200.0f);
     if (heroe->getPosX() < 10.0f) heroe->setPosX(10.0f);
 
@@ -164,7 +195,7 @@ void ControladorNivel2::actualizarReglas(float dt) {
 
             float offsetX = ((contadorBombas % 3) - 1) * 175.0f;
             float dropX = std::clamp(heroe->getPosX() + offsetX, 80.0f, 1200.0f);
-            float vxBomba = ((contadorBombas % 2 == 0) ? 1.0f : -1.0f) * 55.0f;
+            float vxBomba = ((contadorBombas % 2 == 0) ? 1.0f : -1.0f) * 45.0f;
             proyectilesJefe.push_back({dropX, -70.0f, vxBomba, 40.0f, true, true});
         }
     }
@@ -176,8 +207,22 @@ void ControladorNivel2::actualizarReglas(float dt) {
             proj.vy += gravedadBombas * dt;
             proj.x  += proj.vx * dt;
             proj.y  += proj.vy * dt;
-            if (proj.y >= 455.0f) {
+
+            // Impacto de bomba contra plataformas o suelo
+            bool chocoPlataforma = false;
+            for (const auto& plat : plataformas) {
+                if (proj.x >= plat.x && proj.x <= (plat.x + plat.ancho) &&
+                    proj.y >= plat.y && proj.y <= plat.y + 18.0f) {
+                    proj.activa = false;
+                    explosiones.push_back({proj.x, plat.y, 0.36f, 0.36f});
+                    chocoPlataforma = true;
+                    break;
+                }
+            }
+
+            if (!chocoPlataforma && proj.y >= 460.0f) {
                 proj.activa = false;
+                explosiones.push_back({proj.x, 462.0f, 0.36f, 0.36f});
             }
         } else {
             proj.x += proj.vx * dt;
@@ -191,6 +236,16 @@ void ControladorNivel2::actualizarReglas(float dt) {
         std::remove_if(proyectilesJefe.begin(), proyectilesJefe.end(),
                        [](const ProyectilJefe& p) { return !p.activa; }),
         proyectilesJefe.end()
+        );
+
+    // Actualizar temporizador de explosiones visuales
+    for (auto& exp : explosiones) {
+        exp.tiempoVida -= dt;
+    }
+    explosiones.erase(
+        std::remove_if(explosiones.begin(), explosiones.end(),
+                       [](const ExplosionVisual& e) { return e.tiempoVida <= 0.0f; }),
+        explosiones.end()
         );
 
     verificarColisionesArena();

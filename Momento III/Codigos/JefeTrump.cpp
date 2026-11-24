@@ -3,7 +3,7 @@
 #include <algorithm>
 
 JefeTrump::JefeTrump(float x, float y)
-    : Personaje(x, y, 88.0f, 112.0f, 210.0f),
+    : Personaje(x, y, 76.0f, 96.0f, 210.0f),
     vidaMax(300),
     vidaActual(300),
     faseActual(1),
@@ -74,7 +74,6 @@ void JefeTrump::actualizarIA(float dt, float heroeX, bool jugadorSaltando, bool 
 
     percibirYAprender(jugadorSaltando, jugadorAgachado, jugadorBloqueando, escudoActivo);
 
-    // Reacción de salto táctico si el escudo viene hacia Trump y está en el suelo
     if (escudoActivo && enSuelo && estadoIA == EstadoIATrump::Patrullando && memEscudosJugador > 12 && (static_cast<int>(posX) % 3 == 0)) {
         estadoIA = EstadoIATrump::Saltando;
         velY = -520.0f;
@@ -125,18 +124,18 @@ void JefeTrump::actualizarIA(float dt, float heroeX, bool jugadorSaltando, bool 
             timerEstado -= dt;
             if (timerEstado <= 0.0f) {
                 estadoIA = EstadoIATrump::Disparando;
-                timerEstado = (faseActual == 2) ? 0.25f : 0.35f;
+                timerEstado = (faseActual == 2) ? 0.32f : 0.42f;
 
                 float rapidezBala = (faseActual == 2) ? 640.0f : 490.0f;
                 float origenX = (direccion > 0) ? (posX + ancho) : (posX - 24.0f);
                 float alturaDisparo = (memSaltosJugador > memAgachadasJugador + 15)
-                                          ? (posY + 32.0f)
-                                          : (posY + 38.0f);
+                                          ? (posY + 26.0f)
+                                          : (posY + 34.0f);
 
                 proyectiles.push_back({origenX, alturaDisparo, direccion * rapidezBala, 0.0f, false, true});
 
                 if (faseActual == 2) {
-                    proyectiles.push_back({origenX - direccion * 45.0f, posY + 68.0f, direccion * (rapidezBala * 0.92f), 0.0f, false, true});
+                    proyectiles.push_back({origenX - direccion * 45.0f, posY + 56.0f, direccion * (rapidezBala * 0.92f), 0.0f, false, true});
                 }
             }
             break;

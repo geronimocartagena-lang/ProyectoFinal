@@ -32,6 +32,7 @@ private:
     std::vector<QGraphicsPixmapItem*> poolDisparosJefe;
     std::vector<QGraphicsPixmapItem*> poolBombasJefe;
     std::vector<QGraphicsEllipseItem*> poolSombrasBombas;
+    std::vector<QGraphicsPixmapItem*> poolExplosiones;
 
     QGraphicsTextItem* hudTexto;
     QGraphicsPixmapItem* itemBarraVidaHeroe;
@@ -62,14 +63,18 @@ private:
     std::vector<QPixmap> framesDefensa;
     std::vector<QPixmap> framesEscudo;
 
-    // Sprites Donald Trump (Fila 1: Idle, Fila 2: Caminar, Fila 3: Correr/Embestida, Fila 4: Saltar)
+    // Sprites Donald Trump
     std::vector<QPixmap> framesTrumpIdle;
     std::vector<QPixmap> framesTrumpCaminar;
-    std::vector<QPixmap> framesTrumpCorrerEmbestida;
+    std::vector<QPixmap> framesTrumpCorrer;
+    std::vector<QPixmap> framesTrumpEmbestida;
     std::vector<QPixmap> framesTrumpSaltar;
+    std::vector<QPixmap> framesTrumpDisparar;
 
+    // Sprites Explosivos
     QPixmap pixBalaJefe;
     QPixmap pixBombaJefe;
+    std::vector<QPixmap> framesExplosion;
 
     int frameHeroeActual;
     int frameGolpeActual;

@@ -369,6 +369,34 @@ void VentanaNivel2::construirEscenario() {
         escena->addRect(0, 480, 1280, 60, QPen(Qt::NoPen), QBrush(QColor(135, 100, 58)));
     }
 
+    // --- DIBUJAR LAS 2 PLATAFORMAS DE ESQUINA ---
+    for (const auto& plat : controlador->getPlataformas()) {
+        int pw = static_cast<int>(plat.ancho);
+        int ph = static_cast<int>(plat.alto);
+        QPixmap pixPlat(pw, ph);
+        pixPlat.fill(Qt::transparent);
+
+        QPainter p(&pixPlat);
+        p.setRenderHint(QPainter::Antialiasing, false);
+
+        // Cuerpo de piedra fortificada
+        p.fillRect(0, 4, pw, ph - 4, QColor(98, 76, 56));
+        p.fillRect(0, 0, pw, 5, QColor(214, 176, 114));
+        p.fillRect(0, ph - 4, pw, 4, QColor(52, 38, 26));
+
+        // Bloques de mampostería
+        p.setPen(QPen(QColor(58, 42, 28), 2));
+        p.drawRect(1, 1, pw - 2, ph - 2);
+        for (int bx = 28; bx < pw; bx += 28) {
+            p.drawLine(bx, 5, bx, ph - 4);
+        }
+        p.end();
+
+        QGraphicsPixmapItem* itemPlat = escena->addPixmap(pixPlat);
+        itemPlat->setPos(plat.x, plat.y);
+        itemPlat->setZValue(1);
+    }
+
     {
         const int cw = 355;
         const int ch = 104;
@@ -390,7 +418,7 @@ void VentanaNivel2::construirEscenario() {
         p.setPen(QColor(240, 240, 240));
         p.drawText(12, 40, "[A/D] Mover | [W/Espacio] Saltar | [S] Agacharse");
         p.drawText(12, 58, "[H] Golpe   | [J] Escudo Rebote  | [K] Bloquear");
-        p.drawText(12, 78, "TIP: Bloquea disparos y aturde a Trump con [J]");
+        p.drawText(12, 78, "TIP: Usa plataformas o [J] para aturdir a Trump");
         p.end();
 
         QGraphicsPixmapItem* itemCartel = escena->addPixmap(cartelPix);
@@ -420,9 +448,8 @@ void VentanaNivel2::construirEscenario() {
 }
 
 void VentanaNivel2::cargarSprites() {
-    const int ALTURA_CORRER   = 76;
-    const int ALTURA_ESTANDAR = 88;
-    const int ALTURA_TRUMP    = 112;
+    // MISMA ALTURA EXACTA PARA AMBOS PERSONAJES (96 px)
+    const int ALTURA_PERSONAJES = 96;
 
     // --- A. CAPITÁN CORRIENDO ---
     QPixmap sheetCorrer;
@@ -447,13 +474,13 @@ void VentanaNivel2::cargarSprites() {
                 }
                 if (pixelesHeroe > 35) {
                     QPixmap recorte = recortarBordesTransparentes(celda);
-                    framesCorrer.push_back(recorte.scaledToHeight(ALTURA_CORRER, Qt::SmoothTransformation));
+                    framesCorrer.push_back(recorte.scaledToHeight(ALTURA_PERSONAJES, Qt::SmoothTransformation));
                 }
             }
         }
     }
     if (framesCorrer.empty()) {
-        QPixmap fb(60, ALTURA_CORRER);
+        QPixmap fb(60, ALTURA_PERSONAJES);
         fb.fill(Qt::blue);
         framesCorrer.push_back(fb);
     }
@@ -463,7 +490,7 @@ void VentanaNivel2::cargarSprites() {
     QPixmap sheetSaltar;
     if (sheetSaltar.load(":/new/prefix1/Sprite_Saltar.png")) {
         QPixmap saltoLimpio = limpiarVerdeChroma(sheetSaltar);
-        extraerSpritesPorBlob(saltoLimpio, 0, saltoLimpio.height(), 145, ALTURA_ESTANDAR, framesSaltar);
+        extraerSpritesPorBlob(saltoLimpio, 0, saltoLimpio.height(), 145, ALTURA_PERSONAJES, framesSaltar);
     }
     if (framesSaltar.empty()) framesSaltar.push_back(pixQuieto);
 
@@ -471,15 +498,15 @@ void VentanaNivel2::cargarSprites() {
     QPixmap sheetLucha;
     if (sheetLucha.load(":/new/prefix1/Lucha_cuerpoACuerpo.png")) {
         int mitadY = sheetLucha.height() / 2;
-        extraerSpritesPorBlob(sheetLucha, mitadY, sheetLucha.height(), 105, ALTURA_ESTANDAR, framesGolpear);
-        extraerSpritesPorBlob(sheetLucha, 0, mitadY, 105, ALTURA_ESTANDAR, framesGolpear);
+        extraerSpritesPorBlob(sheetLucha, mitadY, sheetLucha.height(), 105, ALTURA_PERSONAJES, framesGolpear);
+        extraerSpritesPorBlob(sheetLucha, 0, mitadY, 105, ALTURA_PERSONAJES, framesGolpear);
     }
     if (framesGolpear.empty()) framesGolpear.push_back(pixQuieto);
 
     // --- D. CAPITÁN DEFENSA ---
     QPixmap sheetDefensa;
     if (sheetDefensa.load(":/new/prefix1/DefensaC.png")) {
-        extraerSpritesPorBlob(sheetDefensa, 0, sheetDefensa.height(), 0, ALTURA_ESTANDAR, framesDefensa);
+        extraerSpritesPorBlob(sheetDefensa, 0, sheetDefensa.height(), 0, ALTURA_PERSONAJES, framesDefensa);
     }
     if (framesDefensa.empty()) framesDefensa.push_back(pixQuieto);
 
@@ -503,39 +530,68 @@ void VentanaNivel2::cargarSprites() {
         framesEscudo.push_back(fb);
     }
 
-    // --- F. DONALD TRUMP (Quieto, Caminar, Correr/Embestida, Saltar) ---
+    // --- F. DONALD TRUMP: MOVIMIENTO BASE (Idle, Caminar, Correr, Saltar) ---
     QPixmap sheetTrump;
     if (sheetTrump.load(":/new/prefix1/sprites_ Trump.png")) {
         QPixmap trumpLimpio = limpiarFondoPorEsquina(sheetTrump);
         int altoSheet = trumpLimpio.height();
 
-        int y1Ini = static_cast<int>(altoSheet * 0.015);
-        int y1Fin = static_cast<int>(altoSheet * 0.258);
-
-        int y2Ini = static_cast<int>(altoSheet * 0.268);
-        int y2Fin = static_cast<int>(altoSheet * 0.505);
-
-        int y3Ini = static_cast<int>(altoSheet * 0.510);
-        int y3Fin = static_cast<int>(altoSheet * 0.740);
-
-        int y4Ini = static_cast<int>(altoSheet * 0.745);
-        int y4Fin = static_cast<int>(altoSheet * 0.980);
-
-        extraerSpritesPorBlob(trumpLimpio, y1Ini, y1Fin, 0, ALTURA_TRUMP, framesTrumpIdle);
-        extraerSpritesPorBlob(trumpLimpio, y2Ini, y2Fin, 0, ALTURA_TRUMP, framesTrumpCaminar);
-        extraerSpritesPorBlob(trumpLimpio, y3Ini, y3Fin, 0, ALTURA_TRUMP, framesTrumpCorrerEmbestida);
-        extraerSpritesPorBlob(trumpLimpio, y4Ini, y4Fin, 0, ALTURA_TRUMP, framesTrumpSaltar);
+        extraerSpritesPorBlob(trumpLimpio, static_cast<int>(altoSheet * 0.015), static_cast<int>(altoSheet * 0.258), 0, ALTURA_PERSONAJES, framesTrumpIdle);
+        extraerSpritesPorBlob(trumpLimpio, static_cast<int>(altoSheet * 0.268), static_cast<int>(altoSheet * 0.505), 0, ALTURA_PERSONAJES, framesTrumpCaminar);
+        extraerSpritesPorBlob(trumpLimpio, static_cast<int>(altoSheet * 0.510), static_cast<int>(altoSheet * 0.740), 0, ALTURA_PERSONAJES, framesTrumpCorrer);
+        extraerSpritesPorBlob(trumpLimpio, static_cast<int>(altoSheet * 0.745), static_cast<int>(altoSheet * 0.980), 0, ALTURA_PERSONAJES, framesTrumpSaltar);
     }
+
+    // --- G. DONALD TRUMP: DISPARO Y EMBESTIDA (TrumpDisparaSalta.jpg) ---
+    QPixmap sheetTrumpAtaque;
+    if (sheetTrumpAtaque.load(":/new/prefix1/TrumpDisparaSalta.jpg")) {
+        QPixmap ataqueLimpio = limpiarFondoAjedrez(sheetTrumpAtaque);
+        int altoAtaque = ataqueLimpio.height();
+
+        // Fila 1: Disparo con pistola y fogonazo
+        extraerSpritesPorBlob(ataqueLimpio, static_cast<int>(altoAtaque * 0.02), static_cast<int>(altoAtaque * 0.35), 0, ALTURA_PERSONAJES, framesTrumpDisparar);
+        // Fila 2: Embestida con líneas de velocidad
+        extraerSpritesPorBlob(ataqueLimpio, static_cast<int>(altoAtaque * 0.36), static_cast<int>(altoAtaque * 0.67), 0, ALTURA_PERSONAJES, framesTrumpEmbestida);
+    }
+
     if (framesTrumpIdle.empty()) {
-        QPixmap fb(80, ALTURA_TRUMP);
+        QPixmap fb(72, ALTURA_PERSONAJES);
         fb.fill(Qt::darkRed);
         framesTrumpIdle.push_back(fb);
     }
     if (framesTrumpCaminar.empty()) framesTrumpCaminar = framesTrumpIdle;
-    if (framesTrumpCorrerEmbestida.empty()) framesTrumpCorrerEmbestida = framesTrumpCaminar;
+    if (framesTrumpCorrer.empty()) framesTrumpCorrer = framesTrumpCaminar;
+    if (framesTrumpEmbestida.empty()) framesTrumpEmbestida = framesTrumpCorrer;
     if (framesTrumpSaltar.empty()) framesTrumpSaltar = framesTrumpIdle;
+    if (framesTrumpDisparar.empty()) framesTrumpDisparar = framesTrumpIdle;
 
-    // --- G. PROYECTILES Y BOMBAS AÉREAS ---
+    // --- H. EXPLOSIVOS (Explosivos.jpg: Misil cayendo + 3 fases de explosión) ---
+    QPixmap sheetExplosivos;
+    if (sheetExplosivos.load(":/new/prefix1/Explosivos.jpg")) {
+        QPixmap expLimpio = limpiarFondoAjedrez(sheetExplosivos);
+        int ew = expLimpio.width();
+        int eh = expLimpio.height();
+
+        // Misil vertical de la parte superior izquierda
+        QPixmap misilRecorte = recortarBordesTransparentes(expLimpio.copy(0, 0, static_cast<int>(ew * 0.45), static_cast<int>(eh * 0.52)));
+        if (!misilRecorte.isNull()) {
+            pixBombaJefe = misilRecorte.scaledToHeight(64, Qt::SmoothTransformation);
+        }
+
+        // Explosiones de la fila inferior derecha (3 etapas de tamaño creciente)
+        std::vector<QPixmap> expCrudas;
+        extraerSpritesPorBlob(expLimpio.copy(static_cast<int>(ew * 0.42), static_cast<int>(eh * 0.52),
+                                             ew - static_cast<int>(ew * 0.42), eh - static_cast<int>(eh * 0.52)),
+                              0, eh - static_cast<int>(eh * 0.52), 185, 118, expCrudas);
+        framesExplosion = expCrudas;
+    }
+
+    if (pixBombaJefe.isNull()) {
+        pixBombaJefe = QPixmap(34, 48);
+        pixBombaJefe.fill(Qt::darkGray);
+    }
+
+    // Bala de pistola
     pixBalaJefe = QPixmap(36, 14);
     pixBalaJefe.fill(Qt::transparent);
     {
@@ -547,21 +603,6 @@ void VentanaNivel2::cargarSprites() {
         p.setPen(QPen(Qt::black, 1.5));
         p.setBrush(QColor(255, 215, 0));
         p.drawRoundedRect(12, 2, 22, 10, 5, 5);
-    }
-
-    pixBombaJefe = QPixmap(34, 38);
-    pixBombaJefe.fill(Qt::transparent);
-    {
-        QPainter p(&pixBombaJefe);
-        p.setRenderHint(QPainter::Antialiasing);
-        p.setPen(QPen(Qt::black, 2));
-        p.setBrush(QColor(44, 62, 80));
-        p.drawEllipse(3, 8, 28, 28);
-        p.setBrush(QColor(231, 76, 60));
-        p.drawRect(13, 3, 8, 6);
-        p.setPen(Qt::NoPen);
-        p.setBrush(QColor(241, 196, 15));
-        p.drawEllipse(14, 0, 6, 6);
     }
 
     itemHeroe = escena->addPixmap(pixQuieto);
@@ -591,6 +632,13 @@ void VentanaNivel2::cargarSprites() {
         bombaItem->setVisible(false);
         bombaItem->setZValue(7);
         poolBombasJefe.push_back(bombaItem);
+    }
+
+    for (int i = 0; i < 15; ++i) {
+        QGraphicsPixmapItem* expItem = escena->addPixmap(QPixmap());
+        expItem->setVisible(false);
+        expItem->setZValue(8);
+        poolExplosiones.push_back(expItem);
     }
 }
 
@@ -653,6 +701,7 @@ void VentanaNivel2::actualizarAnimaciones(int direccion) {
         itemEscudo->setPixmap(framesEscudo[frameEscudoActual % framesEscudo.size()]);
     }
 
+    // --- ANIMACIÓN DE DONALD TRUMP ---
     JefeTrump* jefe = controlador->getJefe();
     if (!jefe->isVivo()) {
         itemJefe->setVisible(false);
@@ -660,15 +709,23 @@ void VentanaNivel2::actualizarAnimaciones(int direccion) {
     }
 
     QPixmap pixT;
-    if (!jefe->isEnSuelo() && !framesTrumpSaltar.empty()) {
+    EstadoIATrump est = jefe->getEstadoIA();
+
+    if ((est == EstadoIATrump::PreparandoDisparo || est == EstadoIATrump::Disparando) && !framesTrumpDisparar.empty()) {
+        int idxDisparo = (est == EstadoIATrump::PreparandoDisparo) ? 0 : (1 + (contadorTicks / 3) % std::max(1, static_cast<int>(framesTrumpDisparar.size()) - 1));
+        pixT = framesTrumpDisparar[idxDisparo % framesTrumpDisparar.size()];
+    } else if ((est == EstadoIATrump::PreparandoEmbestida || est == EstadoIATrump::Embistiendo) && !framesTrumpEmbestida.empty()) {
+        if (contadorTicks % 3 == 0) frameTrumpActual++;
+        pixT = framesTrumpEmbestida[frameTrumpActual % framesTrumpEmbestida.size()];
+    } else if (!jefe->isEnSuelo() && !framesTrumpSaltar.empty()) {
         float vy = jefe->getVelY();
         int total = static_cast<int>(framesTrumpSaltar.size());
         float progreso = std::clamp((vy + 520.0f) / 1040.0f, 0.0f, 0.999f);
         int idxSalto = static_cast<int>(progreso * total);
         pixT = framesTrumpSaltar[idxSalto % total];
-    } else if (jefe->isCorriendo() && !framesTrumpCorrerEmbestida.empty()) {
+    } else if (jefe->isCorriendo() && !framesTrumpCorrer.empty()) {
         if (contadorTicks % 3 == 0) frameTrumpActual++;
-        pixT = framesTrumpCorrerEmbestida[frameTrumpActual % framesTrumpCorrerEmbestida.size()];
+        pixT = framesTrumpCorrer[frameTrumpActual % framesTrumpCorrer.size()];
     } else if (jefe->isCaminando() && !framesTrumpCaminar.empty()) {
         if (contadorTicks % 4 == 0) frameTrumpActual++;
         pixT = framesTrumpCaminar[frameTrumpActual % framesTrumpCaminar.size()];
@@ -773,14 +830,20 @@ void VentanaNivel2::actualizarFrame() {
 
     actualizarAnimaciones(dir);
 
+    // Posición y alineación del Capitán América (misma altura base de 96 px)
     double anchoHeroePix = itemHeroe->pixmap().width();
     double altoHeroePix  = itemHeroe->pixmap().height();
     double xCentradaHeroe = heroe->getPosX() + (70.0 - anchoHeroePix) * 0.5;
     double yAlineadaHeroe = (heroe->getPosY() + 95.0) - altoHeroePix + 4.0;
     itemHeroe->setPos(xCentradaHeroe, yAlineadaHeroe);
 
-    double hJefe = itemJefe->pixmap().height();
-    itemJefe->setPos(jefe->getPosX(), (jefe->getPosY() + 112.0) - hJefe + 4.0);
+    // Posición y alineación de Donald Trump (misma altura base de 96 px)
+    double anchoJefePix = itemJefe->pixmap().width();
+    double altoJefePix  = itemJefe->pixmap().height();
+    double xJefe = (jefe->getDireccion() < 0)
+                       ? (jefe->getPosX() + 76.0 - anchoJefePix)
+                       : jefe->getPosX();
+    itemJefe->setPos(xJefe, (jefe->getPosY() + 96.0) - altoJefePix + 4.0);
 
     EscudoVibranium* escudo = heroe->getEscudo();
     itemEscudo->setVisible(escudo->estaActivo());
@@ -788,6 +851,7 @@ void VentanaNivel2::actualizarFrame() {
         itemEscudo->setPos(escudo->getPosX() - 16.0f, escudo->getPosY() - 16.0f);
     }
 
+    // --- PROYECTILES Y MISILES ---
     const auto& proyectiles = controlador->getProyectilesJefe();
     size_t disparosActivos = 0;
     size_t idxDisparo = 0;
@@ -798,7 +862,8 @@ void VentanaNivel2::actualizarFrame() {
         if (proj.esBomba) {
             if (idxBomba < poolBombasJefe.size()) {
                 poolBombasJefe[idxBomba]->setVisible(true);
-                poolBombasJefe[idxBomba]->setPos(proj.x - 17.0, proj.y - 19.0);
+                poolBombasJefe[idxBomba]->setPos(proj.x - pixBombaJefe.width() * 0.5,
+                                                 proj.y - pixBombaJefe.height() * 0.5);
 
                 float progresoCaida = std::clamp((proj.y + 70.0f) / 535.0f, 0.15f, 1.0f);
                 double anchoSombra = 56.0 * progresoCaida;
@@ -832,6 +897,26 @@ void VentanaNivel2::actualizarFrame() {
     for (size_t i = idxBomba; i < poolBombasJefe.size(); ++i) {
         poolBombasJefe[i]->setVisible(false);
         poolSombrasBombas[i]->setVisible(false);
+    }
+
+    // --- EXPLOSIONES ANIMADAS AL IMPACTO ---
+    const auto& explosiones = controlador->getExplosiones();
+    size_t idxExp = 0;
+    if (!framesExplosion.empty()) {
+        for (const auto& exp : explosiones) {
+            if (idxExp >= poolExplosiones.size()) break;
+            float progreso = std::clamp(1.0f - (exp.tiempoVida / exp.duracionMax), 0.0f, 0.99f);
+            int frameIdx = static_cast<int>(progreso * framesExplosion.size());
+            const QPixmap& pixExp = framesExplosion[frameIdx % framesExplosion.size()];
+
+            poolExplosiones[idxExp]->setVisible(true);
+            poolExplosiones[idxExp]->setPixmap(pixExp);
+            poolExplosiones[idxExp]->setPos(exp.x - pixExp.width() * 0.5, exp.y - pixExp.height() + 12.0);
+            idxExp++;
+        }
+    }
+    for (size_t i = idxExp; i < poolExplosiones.size(); ++i) {
+        poolExplosiones[i]->setVisible(false);
     }
 
     refrescarTextoHUD();

@@ -968,7 +968,7 @@ void VentanaNivel1::mostrarPantallaFinNivel(bool victoria) {
     layoutTarjeta->setSpacing(14);
     layoutTarjeta->setAlignment(Qt::AlignCenter);
 
-    QLabel* lblBadge = new QLabel(victoria ? "★ NIVEL 1 COMPLETADO ★" : "✖ FIN DE LA PARTIDA ✖", tarjeta);
+    QLabel* lblBadge = new QLabel(victoria ? " " : "", tarjeta);
     lblBadge->setAlignment(Qt::AlignCenter);
     lblBadge->setStyleSheet(
         QString("color: %1;"
@@ -979,7 +979,7 @@ void VentanaNivel1::mostrarPantallaFinNivel(bool victoria) {
                 "background: transparent;").arg(victoria ? "#2ecc71" : "#ff7675")
         );
 
-    QLabel* lblTitulo = new QLabel(victoria ? "¡LO LOGRASTE!\n¡PUEBLO A SALVO!" : "MISIÓN FALLIDA", tarjeta);
+    QLabel* lblTitulo = new QLabel(victoria ? "¡LO LOGRASTE!\n¡PUEBLO A SALVO! :)" : "MISIÓN FALLIDA", tarjeta);
     lblTitulo->setAlignment(Qt::AlignCenter);
     lblTitulo->setStyleSheet(
         QString("color: %1;"
@@ -998,7 +998,7 @@ void VentanaNivel1::mostrarPantallaFinNivel(bool victoria) {
     QLabel* lblResumen = new QLabel(
         victoria
             ? QString("Has evacuado con éxito a los %1/5 grupos de civiles.").arg(controlador->getCivilesEvacuados())
-            : "Has perdido toda tu salud o se agotó el tiempo de rescate.",
+            : "Has perdido toda tu salud o se agotó el tiempo de rescate :(",
         tarjeta
         );
     lblResumen->setAlignment(Qt::AlignCenter);
@@ -1017,9 +1017,9 @@ void VentanaNivel1::mostrarPantallaFinNivel(bool victoria) {
 
     if (victoria) {
         QLabel* lblCinematica = new QLabel(
-            "CINEMÁTICA FINAL:\n"
+            " CINEMÁTICA FINAL:\n "
             "En el futuro, Donald Trump observa el mapa de Colombia y Panamá:\n"
-            "«Que Colombia pelee entre ellos. Me quedaré con Panamá».",
+            "«Que Colombia pelee entre ellos. Me quedaré con Panamá JAJAJA».",
             tarjeta
             );
         lblCinematica->setAlignment(Qt::AlignCenter);
