@@ -27,6 +27,7 @@ private:
     QGraphicsPixmapItem* itemHeroe;
     QGraphicsPixmapItem* itemEscudo;
     std::vector<QGraphicsPixmapItem*> itemsCiviles;
+    std::vector<QGraphicsPixmapItem*> itemsCivilesMeta;
     std::vector<QGraphicsPixmapItem*> itemsEnemigos;
     std::vector<QGraphicsPixmapItem*> poolBalasEnemigas;
 

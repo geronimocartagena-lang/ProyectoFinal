@@ -477,15 +477,36 @@ void VentanaNivel1::construirEscenario() {
         itemCartel->setZValue(-1);
     }
 
-    // 7. Zona Segura (Tipografía Pixel Art)
-    QRectF zona = controlador->getZonaEvacuacion();
-    escena->addRect(zona, QPen(QPen(Qt::darkGreen, 3)), QBrush(QColor(46, 204, 113, 110)));
-    QFont fontPixelZona("Courier New", 13, QFont::Bold);
-    fontPixelZona.setStyleStrategy(QFont::NoAntialias);
-    QGraphicsTextItem* txtZona = escena->addText("ZONA SEGURA");
-    txtZona->setDefaultTextColor(Qt::white);
-    txtZona->setFont(fontPixelZona);
-    txtZona->setPos(zona.x() + 55, zona.y() - 28);
+    // 7. Punto de llegada: sin cuadro verde ni texto "ZONA SEGURA", con letrero y campesinos esperando
+    {
+        QRectF zona = controlador->getZonaEvacuacion();
+        double centroMetaX = zona.center().x();
+
+        const int lw = 310;
+        const int lh = 38;
+        QPixmap letreroPix(lw, lh);
+        letreroPix.fill(Qt::transparent);
+
+        QPainter p(&letreroPix);
+        p.setRenderHint(QPainter::Antialiasing, false);
+        p.fillRect(4, 0, lw - 8, lh, QColor(20, 18, 15, 225));
+        p.fillRect(0, 4, lw, lh - 8, QColor(20, 18, 15, 225));
+        p.fillRect(4, 2, lw - 8, 2, QColor(241, 196, 15));
+        p.fillRect(4, lh - 4, lw - 8, 2, QColor(160, 125, 20));
+        p.fillRect(2, 4, 2, lh - 8, QColor(241, 196, 15));
+        p.fillRect(lw - 4, 4, 2, lh - 8, QColor(160, 125, 20));
+
+        QFont fontMeta("Courier New", 13, QFont::Bold);
+        fontMeta.setStyleStrategy(QFont::NoAntialias);
+        p.setFont(fontMeta);
+        p.setPen(QColor(255, 235, 130));
+        p.drawText(QRect(0, 0, lw, lh), Qt::AlignCenter, "Augusto esta orgulloso");
+        p.end();
+
+        QGraphicsPixmapItem* itemLetreroMeta = escena->addPixmap(letreroPix);
+        itemLetreroMeta->setPos(centroMetaX - lw / 2.0, zona.y() - 32.0);
+        itemLetreroMeta->setZValue(1);
+    }
 
     // 8. HUD superior (Tipografía Pixel Art y sin la palabra "Estado") y Barra de Vida Pixel Art
     QFont fontPixelHUD("Courier New", 15, QFont::Bold);
@@ -698,6 +719,20 @@ void VentanaNivel1::cargarSprites() {
         itemsCiviles.push_back(itemCivil);
     }
 
+    // Campesinos esperando en el lugar donde antes estaba el cuadro verde
+    QRectF zona = controlador->getZonaEvacuacion();
+    double centroMetaX = zona.center().x();
+    const double offsetsMeta[3] = {-75.0, 0.0, 75.0};
+    for (int i = 0; i < 3; ++i) {
+        size_t tipo = static_cast<size_t>(i) % framesCampesinos.size();
+        QPixmap pixInicial = framesCampesinos[tipo][0].transformed(QTransform().scale(-1, 1));
+        QGraphicsPixmapItem* itemMeta = escena->addPixmap(pixInicial);
+        double yAlineadaMeta = 465.0 - pixInicial.height() + 4.0;
+        itemMeta->setPos(centroMetaX + offsetsMeta[i] - pixInicial.width() * 0.5, yAlineadaMeta);
+        itemMeta->setZValue(1.2 + i * 0.05);
+        itemsCivilesMeta.push_back(itemMeta);
+    }
+
     for (size_t i = 0; i < controlador->getEnemigos().size(); ++i) {
         QGraphicsPixmapItem* itemEnem = escena->addPixmap(framesEnemigoCaminar[0]);
         itemEnem->setZValue(3);
@@ -786,6 +821,15 @@ void VentanaNivel1::actualizarAnimaciones(int direccion) {
                     }
                     itemsCiviles[i]->setPixmap(pixC);
                 }
+            }
+        }
+
+        for (size_t i = 0; i < itemsCivilesMeta.size(); ++i) {
+            size_t tipo = i % framesCampesinos.size();
+            if (!framesCampesinos[tipo].empty()) {
+                size_t f = frameCivilActual % framesCampesinos[tipo].size();
+                QPixmap pixMeta = framesCampesinos[tipo][f].transformed(QTransform().scale(-1, 1));
+                itemsCivilesMeta[i]->setPixmap(pixMeta);
             }
         }
     }
@@ -1047,8 +1091,7 @@ void VentanaNivel1::mostrarPantallaFinNivel(bool victoria) {
     if (victoria) {
         QLabel* lblCinematica = new QLabel(
             " CINEMÁTICA FINAL:\n "
-            "En el futuro, Donald Trump observa el mapa de Colombia y Panamá:\n"
-            "«Que Colombia pelee entre ellos. Me quedaré con Panamá JAJAJA».",
+            "En el futuro, Donald Trump observa el mapa de Colombia y Panamá\n",
             tarjeta
             );
         lblCinematica->setAlignment(Qt::AlignCenter);
