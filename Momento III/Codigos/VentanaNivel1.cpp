@@ -15,7 +15,7 @@
 #include <algorithm>
 #include <cmath>
 
-VentanaNivel1::VentanaNivel1(QWidget* parent)
+VentanaNivel1::VentanaNivel1(bool modoDificil, QWidget* parent)
     : QGraphicsView(parent),
     ultimaVidaRenderizada(-1),
     vidaPreviaHeroe(-1),
@@ -44,7 +44,7 @@ VentanaNivel1::VentanaNivel1(QWidget* parent)
     escena->setItemIndexMethod(QGraphicsScene::NoIndex);
     setScene(escena);
 
-    controlador = new ControladorNivel1(this);
+    controlador = new ControladorNivel1(modoDificil, this);
     vidaPreviaHeroe = controlador->getHeroe()->getVidaActual();
 
     int sumaVidaEnemigos = 0;
@@ -508,13 +508,14 @@ void VentanaNivel1::construirEscenario() {
         itemLetreroMeta->setZValue(1);
     }
 
-    // 8. HUD superior (Tipografía Pixel Art y sin la palabra "Estado") y Barra de Vida Pixel Art
+    // 8. HUD superior (Tipografía Pixel Art) y Barra de Vida Pixel Art
     QFont fontPixelHUD("Courier New", 15, QFont::Bold);
     fontPixelHUD.setStyleStrategy(QFont::NoAntialias);
-    hudTexto = escena->addText("Tiempo: 04:00 | Rescatados: 0/5 | Normal");
+    hudTexto = escena->addText("");
     hudTexto->setDefaultTextColor(Qt::white);
     hudTexto->setFont(fontPixelHUD);
     hudTexto->setZValue(10);
+    refrescarTextoHUD();
 
     itemBarraVida = escena->addPixmap(QPixmap());
     itemBarraVida->setZValue(11);
@@ -1005,11 +1006,13 @@ void VentanaNivel1::refrescarTextoHUD() {
     int segundosRestantes = controlador->getTiempoRestante();
     int min = segundosRestantes / 60;
     int seg = segundosRestantes % 60;
-    QString texto = QString("Tiempo: %1:%2 | Rescatados: %3/5 | %4")
+    QString modoStr = controlador->isModoDificil() ? "" : "";
+    QString texto = QString("Tiempo: %1:%2 | Rescatados: %3/5 | %4 ")
                         .arg(min, 2, 10, QChar('0'))
                         .arg(seg, 2, 10, QChar('0'))
                         .arg(controlador->getCivilesEvacuados())
-                        .arg(controlador->getHeroe()->getEstadoEspecial());
+                        .arg(controlador->getHeroe()->getEstadoEspecial())
+                        .arg(modoStr);
     hudTexto->setPlainText(texto);
 }
 
@@ -1071,7 +1074,9 @@ void VentanaNivel1::mostrarPantallaFinNivel(bool victoria) {
     QLabel* lblResumen = new QLabel(
         victoria
             ? QString("Has evacuado con éxito a los %1/5 grupos de civiles.").arg(controlador->getCivilesEvacuados())
-            : "Has perdido toda tu salud o se agotó el tiempo de rescate :(",
+            : (controlador->isModoDificil()
+                   ? "Un campesino fue herido, perdiste tu salud o se agotó el tiempo :("
+                   : "Has perdido toda tu salud o se agotó el tiempo de rescate :("),
         tarjeta
         );
     lblResumen->setAlignment(Qt::AlignCenter);

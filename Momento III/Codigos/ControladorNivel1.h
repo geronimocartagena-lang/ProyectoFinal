@@ -24,6 +24,7 @@ private:
     int civilesEvacuados;
     bool juegoTerminado;
     bool misionCumplida;
+    bool modoDificil;
 
     CapitanAmerica* heroe;
     std::vector<Civil*> listaCiviles;
@@ -37,6 +38,9 @@ private:
 public:
     explicit ControladorNivel1(QObject* parent = nullptr);
     ~ControladorNivel1() override;
+
+    explicit ControladorNivel1(bool modoDificil = false, QObject* parent = nullptr);
+    bool isModoDificil() const { return modoDificil; }
 
     void iniciarReloj();
     void verificarColisionesAABB();

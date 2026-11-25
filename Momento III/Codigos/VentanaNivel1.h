@@ -91,7 +91,7 @@ private:
     void mostrarPantallaFinNivel(bool victoria);
 
 public:
-    explicit VentanaNivel1(QWidget* parent = nullptr);
+    explicit VentanaNivel1(bool modoDificil = false, QWidget* parent = nullptr);
     ~VentanaNivel1() override;
 
 signals:

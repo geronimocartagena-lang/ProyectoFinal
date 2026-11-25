@@ -1,5 +1,6 @@
 #include "mainwindow.h"
 #include <QVBoxLayout>
+#include <QHBoxLayout>
 #include <QWidget>
 #include <QFont>
 #include <QPixmap>
@@ -80,15 +81,40 @@ MainWindow::MainWindow(QWidget* parent)
     sombraTexto->setColor(QColor(0, 0, 0, 230));
     lblTitulo->setGraphicsEffect(sombraTexto);
 
-    btnIniciar = new QPushButton("NIVEL 1: RESCATE", panelTitulo);
+    QHBoxLayout* filaNivel1 = new QHBoxLayout();
+    filaNivel1->setSpacing(12);
+
+    btnIniciar = new QPushButton("NIVEL 1: NORMAL", panelTitulo);
     btnIniciar->setCursor(Qt::PointingHandCursor);
-    btnIniciar->setFixedSize(310, 58);
+    btnIniciar->setFixedSize(230, 58);
     btnIniciar->setStyleSheet(
+        "QPushButton {"
+        "   background-color: #27ae60;"
+        "   color: #ffffff;"
+        "   font-family: 'Courier New';"
+        "   font-size: 18px;"
+        "   font-weight: bold;"
+        "   border: 3px solid #f5d76e;"
+        "   border-radius: 4px;"
+        "}"
+        "QPushButton:hover {"
+        "   background-color: #2ecc71;"
+        "   border: 3px solid #ffffff;"
+        "}"
+        "QPushButton:pressed {"
+        "   background-color: #1e8449;"
+        "}"
+        );
+
+    btnIniciarDificil = new QPushButton("NIVEL 1: DIFÍCIL", panelTitulo);
+    btnIniciarDificil->setCursor(Qt::PointingHandCursor);
+    btnIniciarDificil->setFixedSize(230, 58);
+    btnIniciarDificil->setStyleSheet(
         "QPushButton {"
         "   background-color: #c0392b;"
         "   color: #ffffff;"
         "   font-family: 'Courier New';"
-        "   font-size: 20px;"
+        "   font-size: 18px;"
         "   font-weight: bold;"
         "   border: 3px solid #f5d76e;"
         "   border-radius: 4px;"
@@ -102,9 +128,12 @@ MainWindow::MainWindow(QWidget* parent)
         "}"
         );
 
+    filaNivel1->addWidget(btnIniciar);
+    filaNivel1->addWidget(btnIniciarDificil);
+
     btnNivel2Directo = new QPushButton("NIVEL 2: JEFE FINAL", panelTitulo);
     btnNivel2Directo->setCursor(Qt::PointingHandCursor);
-    btnNivel2Directo->setFixedSize(310, 58);
+    btnNivel2Directo->setFixedSize(472, 58);
     btnNivel2Directo->setStyleSheet(
         "QPushButton {"
         "   background-color: #1f618d;"
@@ -127,12 +156,13 @@ MainWindow::MainWindow(QWidget* parent)
     panelLayout->addWidget(lblSubtitulo);
     panelLayout->addWidget(lblTitulo);
     panelLayout->addSpacing(10);
-    panelLayout->addWidget(btnIniciar, 0, Qt::AlignCenter);
+    panelLayout->addLayout(filaNivel1);
     panelLayout->addWidget(btnNivel2Directo, 0, Qt::AlignCenter);
 
     layout->addWidget(panelTitulo);
 
-    connect(btnIniciar, &QPushButton::clicked, this, &MainWindow::iniciarJuego);
+    connect(btnIniciar, &QPushButton::clicked, this, [this]() { iniciarJuego(false); });
+    connect(btnIniciarDificil, &QPushButton::clicked, this, [this]() { iniciarJuego(true); });
     connect(btnNivel2Directo, &QPushButton::clicked, this, &MainWindow::abrirNivel2);
 }
 
@@ -141,8 +171,9 @@ MainWindow::~MainWindow() {
     if (ventanaNivel2) delete ventanaNivel2;
 }
 
-void MainWindow::iniciarJuego() {
+void MainWindow::iniciarJuego(bool modoDificil) {
     btnIniciar->setEnabled(false);
+    btnIniciarDificil->setEnabled(false);
     btnNivel2Directo->setEnabled(false);
     reproductorMenu->setPosition(0);
     reproductorMenu->play();
@@ -152,9 +183,11 @@ void MainWindow::iniciarJuego() {
         ventanaNivel1 = nullptr;
     }
 
-    ventanaNivel1 = new VentanaNivel1();
+    ventanaNivel1 = new VentanaNivel1(modoDificil);
     ventanaNivel1->setAttribute(Qt::WA_DeleteOnClose, false);
-    ventanaNivel1->setWindowTitle("Capitán América - Nivel 1: Rescate en Colombia");
+    ventanaNivel1->setWindowTitle(modoDificil
+                                      ? "Capitán América - Nivel 1: Rescate en Colombia [DIFÍCIL]"
+                                      : "Capitán América - Nivel 1: Rescate en Colombia [NORMAL]");
     connect(ventanaNivel1, &VentanaNivel1::regresarAlMenu, this, &MainWindow::volverAlMenu);
     connect(ventanaNivel1, &VentanaNivel1::iniciarNivel2, this, &MainWindow::abrirNivel2);
 
@@ -164,6 +197,7 @@ void MainWindow::iniciarJuego() {
 
 void MainWindow::abrirNivel2() {
     btnIniciar->setEnabled(false);
+    btnIniciarDificil->setEnabled(false);
     btnNivel2Directo->setEnabled(false);
     reproductorMenu->setPosition(0);
     reproductorMenu->play();
@@ -210,6 +244,7 @@ void MainWindow::volverAlMenu() {
         QTimer::singleShot(0, viejaN2, &QObject::deleteLater);
     }
     btnIniciar->setEnabled(true);
+    btnIniciarDificil->setEnabled(true);
     btnNivel2Directo->setEnabled(true);
     this->show();
     this->raise();

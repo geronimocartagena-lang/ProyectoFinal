@@ -16,6 +16,7 @@ private:
     VentanaNivel1* ventanaNivel1;
     VentanaNivel2* ventanaNivel2;
     QPushButton* btnIniciar;
+    QPushButton* btnIniciarDificil;
     QPushButton* btnNivel2Directo;
     QMediaPlayer* reproductorMenu;
     QAudioOutput* salidaAudioMenu;
@@ -25,7 +26,7 @@ public:
     ~MainWindow() override;
 
 private slots:
-    void iniciarJuego();
+    void iniciarJuego(bool modoDificil = false);
     void abrirNivel2();
     void volverAlMenu();
 };

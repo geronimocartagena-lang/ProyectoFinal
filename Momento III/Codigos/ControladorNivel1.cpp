@@ -1,13 +1,14 @@
 #include "ControladorNivel1.h"
 #include <algorithm>
 
-ControladorNivel1::ControladorNivel1(QObject* parent)
+ControladorNivel1::ControladorNivel1(bool modoDificil, QObject* parent)
     : QObject(parent),
-    tiempoRestanteSegundos(240),
+    tiempoRestanteSegundos(modoDificil ? 135 : 240),
     nivelActual(1),
     civilesEvacuados(0),
     juegoTerminado(false),
-    misionCumplida(false) {
+    misionCumplida(false),
+    modoDificil(modoDificil) {
 
     heroe = new CapitanAmerica(100.0f, 370.0f);
 
@@ -164,18 +165,35 @@ void ControladorNivel1::verificarColisionesAABB() {
         }
     }
 
+    int danioBala = modoDificil ? 22 : 15;
     for (auto& bala : balasEnemigas) {
         if (!bala.activa) continue;
         QRectF boxBala(bala.x, bala.y, 32.0f, 12.0f);
+
         if (boxBala.intersects(boxHeroe)) {
             bala.activa = false;
-            heroe->recibirDanio(15);
+            heroe->recibirDanio(danioBala);
+            continue;
+        }
+
+        // En Modo Difícil: si una bala toca a un campesino no evacuado, pierdes al instante
+        if (modoDificil) {
+            for (Civil* civil : listaCiviles) {
+                if (!civil->isEvacuado() && boxBala.intersects(civil->getHitBox())) {
+                    bala.activa = false;
+                    timerReloj->stop();
+                    juegoTerminado = true;
+                    misionCumplida = false;
+                    emit nivelFinalizado(false);
+                    return;
+                }
+            }
         }
     }
 
     for (Enemigo* enemigo : listaEnemigos) {
         if (enemigo->isVivo() && !heroe->isAtacandoCuerpoACuerpo() && boxHeroe.intersects(enemigo->getHitBox())) {
-            heroe->recibirDanio(10);
+            heroe->recibirDanio(modoDificil ? 15 : 10);
         }
     }
 
@@ -219,6 +237,8 @@ void ControladorNivel1::actualizarReglas(float dt) {
     }
 
     verificarColisionesAABB();
+
+    if (juegoTerminado) return;
 
     if (heroe->getVidaActual() <= 0) {
         timerReloj->stop();
