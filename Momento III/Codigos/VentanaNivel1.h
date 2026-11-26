@@ -27,6 +27,7 @@ private:
     QGraphicsPixmapItem* itemHeroe;
     QGraphicsPixmapItem* itemEscudo;
     std::vector<QGraphicsPixmapItem*> itemsCiviles;
+    std::vector<QGraphicsPixmapItem*> itemsCivilesMeta;
     std::vector<QGraphicsPixmapItem*> itemsEnemigos;
     std::vector<QGraphicsPixmapItem*> poolBalasEnemigas;
 
@@ -90,7 +91,7 @@ private:
     void mostrarPantallaFinNivel(bool victoria);
 
 public:
-    explicit VentanaNivel1(QWidget* parent = nullptr);
+    explicit VentanaNivel1(bool modoDificil = false, QWidget* parent = nullptr);
     ~VentanaNivel1() override;
 
 signals:

@@ -1,56 +1,56 @@
 #include "ControladorNivel1.h"
 #include <algorithm>
 
-ControladorNivel1::ControladorNivel1(QObject* parent)
+ControladorNivel1::ControladorNivel1(bool modoDificil, QObject* parent)
     : QObject(parent),
-    tiempoRestanteSegundos(240),
+    tiempoRestanteSegundos(modoDificil ? 135 : 240),
     nivelActual(1),
     civilesEvacuados(0),
     juegoTerminado(false),
-    misionCumplida(false) {
+    misionCumplida(false),
+    modoDificil(modoDificil) {
 
     heroe = new CapitanAmerica(100.0f, 370.0f);
 
-    // 13 Plataformas elevadas (Suelo.png) y 6 zonas de fango a lo largo de 8800 px
-    mapaTerreno.push_back({QRectF(420.0f, 340.0f, 250.0f, 36.0f), false, false});   // Plat 1 (Y = 340)
-    mapaTerreno.push_back({QRectF(860.0f, 455.0f, 270.0f, 18.0f), true, false});    // Fango 1
-    mapaTerreno.push_back({QRectF(1260.0f, 320.0f, 280.0f, 36.0f), false, false});  // Plat 2 (Y = 320)
-    mapaTerreno.push_back({QRectF(1680.0f, 240.0f, 260.0f, 36.0f), false, false});  // Plat 3 alta (Y = 240)
-    mapaTerreno.push_back({QRectF(2050.0f, 455.0f, 300.0f, 18.0f), true, false});   // Fango 2
-    mapaTerreno.push_back({QRectF(2480.0f, 330.0f, 280.0f, 36.0f), false, false});  // Plat 4 (Y = 330)
-    mapaTerreno.push_back({QRectF(2950.0f, 250.0f, 260.0f, 36.0f), false, false});  // Plat 5 alta (Y = 250)
-    mapaTerreno.push_back({QRectF(3350.0f, 455.0f, 300.0f, 18.0f), true, false});   // Fango 3
-    mapaTerreno.push_back({QRectF(3820.0f, 320.0f, 280.0f, 36.0f), false, false});  // Plat 6 (Y = 320)
-    mapaTerreno.push_back({QRectF(4280.0f, 240.0f, 270.0f, 36.0f), false, false});  // Plat 7 alta (Y = 240)
-    mapaTerreno.push_back({QRectF(4720.0f, 455.0f, 300.0f, 18.0f), true, false});   // Fango 4
-    mapaTerreno.push_back({QRectF(5180.0f, 330.0f, 280.0f, 36.0f), false, false});  // Plat 8 (Y = 330)
-    mapaTerreno.push_back({QRectF(5620.0f, 250.0f, 270.0f, 36.0f), false, false});  // Plat 9 alta (Y = 250)
-    mapaTerreno.push_back({QRectF(6080.0f, 455.0f, 310.0f, 18.0f), true, false});   // Fango 5
-    mapaTerreno.push_back({QRectF(6540.0f, 325.0f, 290.0f, 36.0f), false, false});  // Plat 10 (Y = 325)
-    mapaTerreno.push_back({QRectF(6980.0f, 240.0f, 280.0f, 36.0f), false, false});  // Plat 11 alta (Y = 240)
-    mapaTerreno.push_back({QRectF(7420.0f, 455.0f, 300.0f, 18.0f), true, false});   // Fango 6
-    mapaTerreno.push_back({QRectF(7860.0f, 320.0f, 290.0f, 36.0f), false, false});  // Plat 12 (Y = 320)
-    mapaTerreno.push_back({QRectF(8050.0f, 230.0f, 240.0f, 36.0f), false, false});  // Plat 13 alta final (Y = 230)
+    mapaTerreno.push_back({QRectF(420.0f, 340.0f, 250.0f, 36.0f), false, false});
+    mapaTerreno.push_back({QRectF(860.0f, 455.0f, 270.0f, 18.0f), true, false});
+    mapaTerreno.push_back({QRectF(1260.0f, 320.0f, 280.0f, 36.0f), false, false});
+    mapaTerreno.push_back({QRectF(1680.0f, 240.0f, 260.0f, 36.0f), false, false});
+    mapaTerreno.push_back({QRectF(2050.0f, 455.0f, 300.0f, 18.0f), true, false});
+    mapaTerreno.push_back({QRectF(2480.0f, 330.0f, 280.0f, 36.0f), false, false});
+    mapaTerreno.push_back({QRectF(2950.0f, 250.0f, 260.0f, 36.0f), false, false});
+    mapaTerreno.push_back({QRectF(3350.0f, 455.0f, 300.0f, 18.0f), true, false});
+    mapaTerreno.push_back({QRectF(3820.0f, 320.0f, 280.0f, 36.0f), false, false});
+    mapaTerreno.push_back({QRectF(4280.0f, 240.0f, 270.0f, 36.0f), false, false});
+    mapaTerreno.push_back({QRectF(4720.0f, 455.0f, 300.0f, 18.0f), true, false});
+    mapaTerreno.push_back({QRectF(5180.0f, 330.0f, 280.0f, 36.0f), false, false});
+    mapaTerreno.push_back({QRectF(5620.0f, 250.0f, 270.0f, 36.0f), false, false});
+    mapaTerreno.push_back({QRectF(6080.0f, 455.0f, 310.0f, 18.0f), true, false});
+    mapaTerreno.push_back({QRectF(6540.0f, 325.0f, 290.0f, 36.0f), false, false});
+    mapaTerreno.push_back({QRectF(6980.0f, 240.0f, 280.0f, 36.0f), false, false});
+    mapaTerreno.push_back({QRectF(7420.0f, 455.0f, 300.0f, 18.0f), true, false});
+    mapaTerreno.push_back({QRectF(7860.0f, 320.0f, 290.0f, 36.0f), false, false});
+    mapaTerreno.push_back({QRectF(8050.0f, 230.0f, 240.0f, 36.0f), false, false});
 
-    // 9 Obstáculos sólidos (Obstaculo.png, 96 x 78 px apoyados en Y = 465)
-    mapaTerreno.push_back({QRectF(690.0f, 387.0f, 96.0f, 78.0f), false, true});     // Obstáculo 1
-    mapaTerreno.push_back({QRectF(1560.0f, 387.0f, 96.0f, 78.0f), false, true});    // Obstáculo 2
-    mapaTerreno.push_back({QRectF(2370.0f, 387.0f, 96.0f, 78.0f), false, true});    // Obstáculo 3
-    mapaTerreno.push_back({QRectF(3220.0f, 387.0f, 96.0f, 78.0f), false, true});    // Obstáculo 4
-    mapaTerreno.push_back({QRectF(4140.0f, 387.0f, 96.0f, 78.0f), false, true});    // Obstáculo 5
-    mapaTerreno.push_back({QRectF(5060.0f, 387.0f, 96.0f, 78.0f), false, true});    // Obstáculo 6
-    mapaTerreno.push_back({QRectF(5950.0f, 387.0f, 96.0f, 78.0f), false, true});    // Obstáculo 7
-    mapaTerreno.push_back({QRectF(6850.0f, 387.0f, 96.0f, 78.0f), false, true});    // Obstáculo 8
-    mapaTerreno.push_back({QRectF(7740.0f, 387.0f, 96.0f, 78.0f), false, true});    // Obstáculo 9
+    // Obstáculos sólidos
+    mapaTerreno.push_back({QRectF(690.0f, 387.0f, 96.0f, 78.0f), false, true});
+    mapaTerreno.push_back({QRectF(1560.0f, 387.0f, 96.0f, 78.0f), false, true});
+    mapaTerreno.push_back({QRectF(2370.0f, 387.0f, 96.0f, 78.0f), false, true});
+    mapaTerreno.push_back({QRectF(3220.0f, 387.0f, 96.0f, 78.0f), false, true});
+    mapaTerreno.push_back({QRectF(4140.0f, 387.0f, 96.0f, 78.0f), false, true});
+    mapaTerreno.push_back({QRectF(5060.0f, 387.0f, 96.0f, 78.0f), false, true});
+    mapaTerreno.push_back({QRectF(5950.0f, 387.0f, 96.0f, 78.0f), false, true});
+    mapaTerreno.push_back({QRectF(6850.0f, 387.0f, 96.0f, 78.0f), false, true});
+    mapaTerreno.push_back({QRectF(7740.0f, 387.0f, 96.0f, 78.0f), false, true});
 
-    // 5 Campesinos distribuidos a lo largo del mapa extendido
+    // Campesinos
     listaCiviles.push_back(new Civil(510.0f, 340.0f - 95.0f));
     listaCiviles.push_back(new Civil(2180.0f, 465.0f - 95.0f));
     listaCiviles.push_back(new Civil(4380.0f, 240.0f - 95.0f));
     listaCiviles.push_back(new Civil(6640.0f, 325.0f - 95.0f));
     listaCiviles.push_back(new Civil(8120.0f, 230.0f - 95.0f));
 
-    // 15 Soldados enemigos
+    //  enemigos
     listaEnemigos.push_back(new Enemigo(805.0f, 370.0f, 65.0f));
     listaEnemigos.push_back(new Enemigo(1380.0f, 320.0f - 95.0f, 80.0f));
     listaEnemigos.push_back(new Enemigo(1980.0f, 370.0f, 120.0f));
@@ -164,18 +164,35 @@ void ControladorNivel1::verificarColisionesAABB() {
         }
     }
 
+    int danioBala = modoDificil ? 22 : 15;
     for (auto& bala : balasEnemigas) {
         if (!bala.activa) continue;
         QRectF boxBala(bala.x, bala.y, 32.0f, 12.0f);
+
         if (boxBala.intersects(boxHeroe)) {
             bala.activa = false;
-            heroe->recibirDanio(15);
+            heroe->recibirDanio(danioBala);
+            continue;
+        }
+
+        // En Modo Difícil: si una bala toca a un campesino no evacuado, pierdes al instante
+        if (modoDificil) {
+            for (Civil* civil : listaCiviles) {
+                if (!civil->isEvacuado() && boxBala.intersects(civil->getHitBox())) {
+                    bala.activa = false;
+                    timerReloj->stop();
+                    juegoTerminado = true;
+                    misionCumplida = false;
+                    emit nivelFinalizado(false);
+                    return;
+                }
+            }
         }
     }
 
     for (Enemigo* enemigo : listaEnemigos) {
         if (enemigo->isVivo() && !heroe->isAtacandoCuerpoACuerpo() && boxHeroe.intersects(enemigo->getHitBox())) {
-            heroe->recibirDanio(10);
+            heroe->recibirDanio(modoDificil ? 15 : 10);
         }
     }
 
@@ -219,6 +236,8 @@ void ControladorNivel1::actualizarReglas(float dt) {
     }
 
     verificarColisionesAABB();
+
+    if (juegoTerminado) return;
 
     if (heroe->getVidaActual() <= 0) {
         timerReloj->stop();

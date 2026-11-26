@@ -12,14 +12,11 @@ ControladorNivel2::ControladorNivel2(QObject* parent)
     timerBombardeo(1.4f),
     contadorBombas(0) {
 
-    // Ambos personajes más pequeños y con la misma altura física (74 px)
     heroe = new CapitanAmerica(180.0f, 391.0f);
     jefe  = new JefeTrump(980.0f, 391.0f);
 
-    // Activar física de rebote en paredes y jefe para el Nivel 2
     heroe->getEscudo()->setModoRebote(true);
 
-    // 2 plataformas en cada esquina para saltar y esquivar
     plataformas.push_back({45.0f,  340.0f, 220.0f, 22.0f});
     plataformas.push_back({1015.0f, 340.0f, 220.0f, 22.0f});
 
@@ -46,7 +43,6 @@ void ControladorNivel2::setAgachado(bool estado) {
 
 QRectF ControladorNivel2::getHitBoxHeroeArena() const {
     QRectF base = heroe->getHitBox();
-    // Ajustar hitbox al tamaño de 74 px de altura (los pies están en posY + 95)
     float topY = heroe->getPosY() + 21.0f;
     float altoH = 74.0f;
     if (agachado && heroe->isEnSuelo()) {
@@ -101,7 +97,6 @@ void ControladorNivel2::verificarColisionesArena() {
 
     EscudoVibranium* escudo = heroe->getEscudo();
     if (escudo->estaActivo()) {
-        // Rebote del escudo en los límites laterales de la arena (reposicionando para evitar doble rebote)
         if (escudo->getPosX() <= 24.0f) {
             escudo->setPosX(25.0f);
             escudo->rebotarVectorial(1.0f, 0.0f);
@@ -110,7 +105,6 @@ void ControladorNivel2::verificarColisionesArena() {
             escudo->rebotarVectorial(-1.0f, 0.0f);
         }
 
-        // Permitir recoger el escudo solo después de haber volado al menos 0.28s
         if (escudo->getTiempoActivo() > 0.28f && boxEscudo.intersects(boxHeroe)) {
             escudo->desactivar();
         }
@@ -120,7 +114,6 @@ void ControladorNivel2::verificarColisionesArena() {
     if (escudo->estaActivo() && jefe->isVivo() && boxEscudo.intersects(boxJefe)) {
         float dirImpulso = (jefe->getPosX() >= escudo->getPosX()) ? 1.0f : -1.0f;
         jefe->recibirDanio(22, dirImpulso * 340.0f, true);
-        // Separar ligeramente el escudo para que no golpee múltiples veces en el mismo frame
         if (dirImpulso > 0.0f) {
             escudo->setPosX(boxJefe.left() - 20.0f);
         } else {
