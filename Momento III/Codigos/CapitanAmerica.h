@@ -9,7 +9,7 @@
 
 class CapitanAmerica : public Personaje {
 private:
-    EscudoVibranium* escudo;
+    EscudoVibranium* escudo; //clase padre
     int civilesRescatados;
     bool modoVeloz;
     bool bloqueando;
